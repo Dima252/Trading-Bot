@@ -1,0 +1,14 @@
+[project]
+name = "trading-bot"
+version = "0.1.0"
+description = "Autonomous swing-trading agent for US equities"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+config = ["pyyaml>=6.0"]
+dev = ["pytest>=7.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

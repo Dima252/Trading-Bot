@@ -1,0 +1,57 @@
+# Versioned policy. Every trade records the version that produced it.
+#
+# Never edit in place once trades reference a version -- bump `version` and let
+# the adaptive layer propose changes through `strategy_changes` with evidence
+# (README section 9.5).
+
+version: v1
+
+# --- risk limits (the constitution) ---
+max_risk_per_trade: 0.01        # 1% of equity at risk per position
+max_portfolio_heat: 0.06        # 6% total open risk across all positions
+max_sector_exposure: 0.25       # 25% of equity in any one sector
+max_position_pct: 0.15          # 15% of equity in any one name
+min_cash_reserve: 0.10          # never deploy the last 10%
+max_new_positions_per_day: 3    # limits correlated same-day entries
+daily_loss_breaker: -0.03       # halt new entries below -3% on the day
+weekly_loss_breaker: -0.06      # halt new entries below -6% on the week
+
+# --- exit rules ---
+time_stop_days: 10              # capital that isn't working gets recalled
+time_stop_min_r: 0.5            # ...unless it has made at least 0.5R
+max_hold_days: 40
+trail_trigger_r: 1.5            # start trailing once 1.5R in profit
+trail_atr_mult: 2.0
+
+# --- rotation ---
+switching_premium: 1.3          # new must beat held by 30% to justify a swap
+min_candidate_score: 40.0
+min_risk_fraction: 0.5          # skip starved allocations below half the risk budget
+max_entry_chase_pct: 0.02       # never lift a breakout entry more than 2% above its trigger
+
+# --- scoring weights (w_setup + w_regime + w_rr must sum to 1.0) ---
+w_setup: 0.60
+w_regime: 0.20
+w_rr: 0.20
+w_event: 0.50                   # penalty weight, applied separately
+rr_cap: 3.0
+
+# --- holding re-score ---
+stale_score_decay: 0.90         # per 10 days held, when no fresh setup exists
+w_performance: 5.0              # score points per 1R unrealized
+
+# How well each setup works in each regime, 0.0 - 1.0.
+# Priors only. Replace with measured expectancy once buckets have 30+ trades.
+regime_fit:
+  breakout:
+    trend: 1.0
+    chop: 0.30
+    high_vol: 0.50
+  pullback:
+    trend: 0.90
+    chop: 0.60
+    high_vol: 0.40
+  mean_reversion:
+    trend: 0.40
+    chop: 0.90
+    high_vol: 0.50
