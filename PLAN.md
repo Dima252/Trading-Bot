@@ -399,19 +399,59 @@ not exist yet.
 
 ---
 
-## 6. What only you can do
+## 5d. THE STOPPING RULE — written before the trial, on purpose
 
-| # | Item | Why it blocks |
-|---|---|---|
-| 1 | **Answer the §5 question** | Determines whether Track A continues or restarts with a different game |
-| 2 | **Approve spending the holdout** | One-shot, irreversible |
-| 3 | **Alpaca paper keys** (`APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`) | Blocks all of Track C. Free. |
-| 4 | **Earnings calendar provider** | Hard-blocking rule that currently **cannot fire** — `config/earnings.json` does not exist, so the code logs a warning and passes everything. Costs money; needs a decision. |
-| 5 | **Confirm your data feed's latency** | The 15:30 close-confirmation check reads live prices. On a delayed feed it is reading 15-minute-old data and the confirmation is meaningless. |
-| 6 | **A VPS** | Cron on a laptop that sleeps is the most likely failure mode. ~$5/month. |
-| 7 | `ANTHROPIC_API_KEY` (optional) | Only for the semantic engine. Unrelated to Alpaca. |
+Committed 2026-08-28, before a single paper trade. The point of writing it now
+is that it cannot be renegotiated later by a version of us that has watched the
+equity curve for a month.
+
+> **Six months of paper trading on `config/policy.yaml` v2-holdout.**
+> **No changes to strategy, sizing, universe, or exits during that window.**
+>
+> **Stop, and do not restart, if either:**
+> - realized expectancy is below zero after 100+ closed trades, or
+> - live expectancy diverges from the holdout's +0.127R by more than 0.15R
+>
+> **Do not change anything mid-trial** — not the regime-fit priors, not the
+> scoring weights, not the universe. A change resets the clock to zero, because
+> the sample stops being one sample.
+>
+> Bugs and operational failures are exempt: fixing a crash is not a strategy
+> change. Anything that alters which trades are taken is.
+
+### Why this specific rule
+
+`all_three` was consistent across four independent periods and still went
+negative out of sample. Fold consistency was not enough. The only test left is
+data that does not exist yet, and it is only a test if nothing moves while it
+runs.
+
+The temptation once it is live will be to adjust after a bad week. That
+temptation is the single most likely way this project produces a confidently
+wrong answer.
+
+### What "no changes" does not cover
+
+The earnings calendar is **not** wired, and that is deliberate for the trial:
+the backtest ran without it too (`NullSemanticEngine`, no `config/earnings.json`),
+so the paper trial tests the same system the 12.20% CAGR came from. Wire it
+before real money, not before paper.
 
 ---
+
+## 6. What only you can do
+
+Only the first is blocking. The rest are before-real-money items.
+
+| # | Item | Status |
+|---|---|---|
+| 1 | **Alpaca paper keys** — `APCA_API_KEY_ID`, `APCA_API_SECRET_KEY` | **BLOCKING.** Free, ~5 minutes at alpaca.markets. Nothing in Track C can start without them. |
+| 2 | **An always-on host** | Blocking for the real trial. ~$5/month. Cron on a laptop that sleeps is the likeliest failure mode. |
+| 3 | **A webhook URL** for alerts (`TRADING_BOT_WEBHOOK`) | Optional but strongly advised. Slack or Discord incoming webhook; one URL. |
+| 4 | **A heartbeat monitor** (`TRADING_BOT_HEARTBEAT`) | Optional but strongly advised. healthchecks.io free tier. **This is the only thing that catches a job never running at all** — dead code sends no alerts. |
+| 5 | **Confirm your data feed's latency** | Before real money. The 15:30 close-confirmation check reads live prices; on a delayed feed it reads 15-minute-old data. |
+| 6 | **Earnings calendar provider** | Before real money, NOT before paper — see §5d. |
+| 7 | `ANTHROPIC_API_KEY` | Optional. Semantic engine only; unrelated to Alpaca. |
 
 ## 7. Rules of engagement
 

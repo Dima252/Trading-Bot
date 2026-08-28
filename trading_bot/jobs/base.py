@@ -29,6 +29,7 @@ from ..core.models import Action, ActionKind, EntryType, Portfolio, Rejection
 from ..core.policy import Policy
 from ..data.cache import BarCache
 from ..db.repo import Repo
+from ..ops.notify import Level, format_summary, heartbeat, notify
 
 log = logging.getLogger("trading_bot")
 
@@ -90,12 +91,47 @@ def run_job(name: str, ctx: AgentContext, body) -> JobResult:
         body(ctx, result, recon, run_id)
 
         ctx.repo.finish_run(run_id, result.status, result.summary)
+        _alert_on_notable(ctx, result, recon)
+        heartbeat(name)
     except Exception as exc:  # noqa: BLE001 -- a job must never die silently
         result.status = "error"
         result.note(f"FAILED: {exc}")
         ctx.repo.finish_run(run_id, "error", traceback.format_exc())
         log.exception("%s failed", name)
+        notify(
+            Level.ERROR,
+            f"{name} failed on {ctx.day}",
+            f"{type(exc).__name__}: {exc}",
+        )
+        heartbeat(name, failed=True)
     return result
+
+
+def _alert_on_notable(ctx: AgentContext, result: JobResult, recon) -> None:
+    """Alert on things a human needs to see, not on every routine run.
+
+    A notifier that fires daily gets muted, and a muted notifier is worse than
+    none -- so this stays quiet unless the book actually changed or something
+    needs attention.
+    """
+    if ctx.repo.is_halted():
+        notify(
+            Level.WARN,
+            f"{result.job}: kill switch is ENGAGED",
+            ctx.repo.get_flag("HALT_REASON") or "",
+        )
+        return
+
+    if recon is not None and recon.warnings:
+        notify(
+            Level.WARN,
+            f"{result.job}: reconciliation warnings",
+            "\n".join(recon.warnings[:5]),
+        )
+
+    traded = [a for a in result.executed if a.kind is not ActionKind.ADJUST_STOP]
+    if traded:
+        notify(Level.INFO, f"{result.job}: book changed", format_summary(result))
 
 
 def constrain(

@@ -149,7 +149,13 @@ def cmd_diagnose(args) -> int:
 
 # The variants under test. Each is a hypothesis stated BEFORE the run, derived
 # from the ranking diagnostic -- not a parameter found by searching.
-def _variants(base: Policy) -> dict[str, Policy]:
+#
+# These are built from the PINNED library defaults, never from config/policy.yaml.
+# Once the shipping config was frozen to the holdout-tested variant, deriving
+# them from the live config would have silently redefined "baseline" and made
+# every recorded research result unreproducible.
+def _variants(_ignored: Policy | None = None) -> dict[str, Policy]:
+    base = Policy()
     return {
         "baseline": base,
         # depth_atr z=-12.1, rsi z=+16.4: the pullback quality score rewards
@@ -394,6 +400,16 @@ def cmd_dashboard(args) -> int:
     return 0
 
 
+def cmd_serve(args) -> int:
+    from .ui.server import serve
+
+    serve(
+        host=args.host, port=args.port, state=args.state,
+        bars=args.bars, policy=args.policy, token=args.token,
+    )
+    return 0
+
+
 def cmd_report(args) -> int:
     from .learning.attribution import format_live_report
 
@@ -433,6 +449,13 @@ def cmd_status(args) -> int:
     day = repo.latest_candidate_day()
     print(f"watchlist:   {len(repo.pending_candidates(day)) if day else 0} pending ({day})")
     print(f"trades:      {len(repo.trades(100000))}")
+
+    from .ops.notify import describe_config
+
+    print()
+    print("alerting:")
+    for line in describe_config().splitlines():
+        print(f"  {line}")
 
     print("\nrecent runs:")
     for job in ("evening", "premarket", "open", "close"):
@@ -514,6 +537,12 @@ def build_parser() -> argparse.ArgumentParser:
     dash = add("dashboard", "render the state database as an HTML page")
     dash.add_argument("--out", default="out/dashboard.html")
     dash.set_defaults(func=cmd_dashboard)
+
+    srv = add("serve", "live dashboard with a kill switch (localhost)")
+    srv.add_argument("--host", default="127.0.0.1")
+    srv.add_argument("--port", type=int, default=8080)
+    srv.add_argument("--token", default="", help="required to bind non-local")
+    srv.set_defaults(func=cmd_serve)
 
     add("report", "live attribution").set_defaults(func=cmd_report)
     add("propose", "evidence-backed policy proposals").set_defaults(func=cmd_propose)
