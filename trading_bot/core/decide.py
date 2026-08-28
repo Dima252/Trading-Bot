@@ -80,6 +80,14 @@ def decide(
                 )
             )
 
+    # --- 2a. REGIME GATE ------------------------------------------------ #
+    # Placed after the defensive pass and stop maintenance, before anything that
+    # spends capital: sitting out a regime must never mean sitting on a broken
+    # position. An agent that cannot decline to trade is compulsive, not
+    # autonomous (README section 5).
+    if not policy.may_open_in(context.regime.value):
+        return actions
+
     # --- 3. RANK: holdings compete on the same scale as candidates ----- #
     survivors = [p for p in portfolio.positions if p.ticker not in closing]
     hold_scores: dict[str, float] = {

@@ -337,3 +337,22 @@ def test_a_full_day_cycle_keeps_the_database_and_broker_in_agreement(
 
 def _runs(repo: Repo):
     return repo.conn.execute("SELECT * FROM runs").fetchall()
+
+
+def test_close_does_not_cancel_the_entry_it_just_submitted(ctx, monkeypatch) -> None:
+    """A marketable limit is briefly "unfilled" between submission and the fill
+    being reported. Sweeping it there would mean the close-confirmation job
+    could never open a position at all."""
+    evening.run(ctx)
+    day = ctx.day
+    pending = ctx.repo.pending_candidates(day)
+    forced = [replace(c, entry_type=EntryType.CLOSE_CONFIRM) for c in pending]
+    monkeypatch.setattr(ctx.repo, "pending_candidates", lambda _d: forced)
+
+    prices = {c.ticker: c.entry for c in forced}
+    result = close_job.run(ctx, prices=prices)
+
+    opened = [a for a in result.executed if a.kind.value == "OPEN"]
+    assert opened, "expected at least one confirmed breakout"
+    live = {o.ticker for o in ctx.broker.orders(open_only=True)}
+    assert {a.ticker for a in opened} <= live

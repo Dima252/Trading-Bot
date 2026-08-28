@@ -72,7 +72,18 @@ def _body(
         entry_types={EntryType.CLOSE_CONFIRM},
     )
 
-    _cancel_unfilled(ctx, result)
+    # The entries just submitted are exempt from the sweep below. A marketable
+    # limit fills in seconds, but "unfilled" is true for the instant between
+    # submitting and the fill being reported -- cancelling there would mean the
+    # close-confirmation job could never actually open a position.
+    from ..broker.orders import client_order_id
+
+    just_submitted = {
+        client_order_id(a.ticker, ctx.day, a.kind)
+        for a in result.executed
+        if a.kind is ActionKind.OPEN
+    }
+    _cancel_unfilled(ctx, result, exempt=just_submitted)
 
 
 def confirm(
@@ -115,16 +126,19 @@ def confirm(
     return confirmed, skipped
 
 
-def _cancel_unfilled(ctx: AgentContext, result: JobResult) -> None:
+def _cancel_unfilled(
+    ctx: AgentContext, result: JobResult, exempt: set[str] | None = None
+) -> None:
     """Nothing rests overnight that we did not mean to leave resting.
 
     An entry that never filled is a trade we did not take, so it goes in the
     shadow book alongside the ones we declined -- otherwise "our limit was too
     low" is a mistake the agent can never learn about.
     """
+    exempt = exempt or set()
     cancelled = 0
     for order in ctx.broker.orders(open_only=True):
-        if order.side != "buy":
+        if order.side != "buy" or order.client_order_id in exempt:
             continue
         if ctx.dry_run:
             result.note(f"[dry run] would cancel {order.ticker}")

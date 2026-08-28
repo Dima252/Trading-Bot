@@ -370,3 +370,68 @@ def test_rotation_survives_the_constitution(
 
     assert not verdict.rejected
     assert len(verdict.approved) == 2
+
+
+# --- the regime gate ------------------------------------------------------ #
+
+
+def test_the_regime_gate_blocks_new_positions(
+    context: MarketContext, policy: Policy
+) -> None:
+    from dataclasses import replace as _replace
+
+    from trading_bot.core.models import Regime
+
+    gated = policy.with_changes(tradeable_regimes=["trend"])
+    cands = [make_candidate(f"T{i}", sector=f"S{i}") for i in range(3)]
+
+    in_trend = decide(make_portfolio(), cands, context, gated)
+    assert len(in_trend) == 3
+
+    in_chop = decide(
+        make_portfolio(), cands, _replace(context, regime=Regime.CHOP), gated
+    )
+    assert in_chop == []
+
+
+def test_the_regime_gate_never_traps_a_position(
+    context: MarketContext, policy: Policy
+) -> None:
+    """Sitting out a regime must not mean sitting on a broken position."""
+    from dataclasses import replace as _replace
+
+    from trading_bot.core.models import Regime
+
+    gated = policy.with_changes(tradeable_regimes=["trend"])
+    broken = make_position("BAD", days_held=15, current_price=101.0)  # time stop
+    pf = make_portfolio([broken], cash=90_000)
+
+    actions = decide(pf, [], _replace(context, regime=Regime.CHOP), gated)
+
+    assert kinds(actions) == [ActionKind.CLOSE]
+    assert "time stop" in actions[0].reason
+
+
+def test_the_regime_gate_still_trails_stops(
+    context: MarketContext, policy: Policy
+) -> None:
+    from dataclasses import replace as _replace
+
+    from trading_bot.core.models import Regime
+
+    gated = policy.with_changes(tradeable_regimes=["trend"])
+    winner = make_position(
+        "RUN", entry_price=100.0, current_price=110.0, stop=95.0,
+        initial_stop=95.0, atr=2.0, days_held=5,
+    )
+    actions = decide(
+        make_portfolio([winner], cash=50_000),
+        [],
+        _replace(context, regime=Regime.CHOP),
+        gated,
+    )
+    assert kinds(actions) == [ActionKind.ADJUST_STOP]
+
+
+def test_the_default_policy_trades_every_regime(policy: Policy) -> None:
+    assert all(policy.may_open_in(r) for r in ("trend", "chop", "high_vol"))

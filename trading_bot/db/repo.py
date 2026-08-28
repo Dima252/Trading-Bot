@@ -443,6 +443,34 @@ class Repo:
             return 0.0
         return (equity_now - baseline) / baseline
 
+    # ----------------------------------------------------- read-only views
+
+    def equity_history(self, limit: int = 2000) -> list[sqlite3.Row]:
+        return self.conn.execute(
+            "SELECT * FROM equity_history ORDER BY day DESC LIMIT ?", (limit,)
+        ).fetchall()[::-1]
+
+    def recent_decisions(self, limit: int = 60) -> list[sqlite3.Row]:
+        return self.conn.execute(
+            "SELECT d.*, r.job FROM decisions d "
+            "LEFT JOIN runs r ON r.id = d.run_id "
+            "ORDER BY d.id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+
+    def candidates_on(self, day: date) -> list[sqlite3.Row]:
+        """Every candidate for a day, whatever its status -- the cancelled ones
+        are half the story."""
+        return self.conn.execute(
+            "SELECT * FROM candidates WHERE day = ? ORDER BY score DESC",
+            (day.isoformat(),),
+        ).fetchall()
+
+    def recent_runs(self, limit: int = 40) -> list[sqlite3.Row]:
+        return self.conn.execute(
+            "SELECT * FROM runs ORDER BY id DESC LIMIT ?", (limit,)
+        ).fetchall()
+
     # --------------------------------------------------------------- flags
 
     def set_flag(self, name: str, value: str) -> None:

@@ -1,0 +1,93 @@
+4 folds x 6 variants over 90 symbols
+holding out 2025-06-11 -> 2026-08-27 -- untouched by every run below
+
+  F1 2020-08-19 -> 2021-10-28  baseline...
+  F1 2020-08-19 -> 2021-10-28  shallow...
+  F1 2020-08-19 -> 2021-10-28  long_hold...
+  F1 2020-08-19 -> 2021-10-28  both...
+  F1 2020-08-19 -> 2021-10-28  trend_only...
+  F1 2020-08-19 -> 2021-10-28  all_three...
+  F2 2021-10-29 -> 2023-01-11  baseline...
+  F2 2021-10-29 -> 2023-01-11  shallow...
+  F2 2021-10-29 -> 2023-01-11  long_hold...
+  F2 2021-10-29 -> 2023-01-11  both...
+  F2 2021-10-29 -> 2023-01-11  trend_only...
+  F2 2021-10-29 -> 2023-01-11  all_three...
+  F3 2023-01-12 -> 2024-03-26  baseline...
+  F3 2023-01-12 -> 2024-03-26  shallow...
+  F3 2023-01-12 -> 2024-03-26  long_hold...
+  F3 2023-01-12 -> 2024-03-26  both...
+  F3 2023-01-12 -> 2024-03-26  trend_only...
+  F3 2023-01-12 -> 2024-03-26  all_three...
+  F4 2024-03-27 -> 2025-06-10  baseline...
+  F4 2024-03-27 -> 2025-06-10  shallow...
+  F4 2024-03-27 -> 2025-06-10  long_hold...
+  F4 2024-03-27 -> 2025-06-10  both...
+  F4 2024-03-27 -> 2025-06-10  trend_only...
+  F4 2024-03-27 -> 2025-06-10  all_three...
+
+==============================================================================
+WALK-FORWARD
+==============================================================================
+  4 folds, 6 variants
+    F1  2020-08-19 -> 2021-10-28
+    F2  2021-10-29 -> 2023-01-11
+    F3  2023-01-12 -> 2024-03-26
+    F4  2024-03-27 -> 2025-06-10
+    HOLDOUT  2025-06-11 -> 2026-08-27  (untouched)
+
+  baseline
+    fold      trades    exp R    win%    return    vs SPY    maxDD
+    F1           218    0.037   38.5%    10.68%   -27.69%    9.07%
+    F2           223   -0.121   35.9%    -8.65%    +3.52%   17.39%
+    F3           222   -0.065   34.7%    -3.18%   -36.27%   17.36%
+    F4           228   -0.020   39.0%    -3.64%   -20.38%   14.37%
+
+  shallow
+    fold      trades    exp R    win%    return    vs SPY    maxDD
+    F1           177    0.239   42.4%    16.19%   -22.18%    5.22%
+    F2           182   -0.127   36.8%    -5.97%    +6.20%   15.06%
+    F3           168    0.048   42.9%     4.12%   -28.97%    9.30%
+    F4           193    0.068   40.4%     5.38%   -11.36%   11.53%
+
+  long_hold
+    fold      trades    exp R    win%    return    vs SPY    maxDD
+    F1           169    0.154   38.5%    19.11%   -19.26%    8.48%
+    F2           179   -0.095   30.2%    -7.27%    +4.90%   17.95%
+    F3           168   -0.006   35.7%     3.25%   -29.84%   12.50%
+    F4           180    0.009   34.4%     3.30%   -13.44%   14.18%
+
+  both
+    fold      trades    exp R    win%    return    vs SPY    maxDD
+    F1           153    0.288   38.6%    17.58%   -20.79%    8.32%
+    F2           153   -0.113   28.1%    -4.73%    +7.44%   11.60%
+    F3           146    0.174   41.1%    11.55%   -21.54%    9.34%
+    F4           157    0.094   35.7%     3.98%   -12.76%   11.03%
+
+  trend_only
+    fold      trades    exp R    win%    return    vs SPY    maxDD
+    F1           110    0.294   46.4%    18.25%   -20.12%    5.42%
+    F2            53   -0.037   39.6%    -3.17%    +9.00%    5.07%
+    F3           138    0.007   42.0%    -1.39%   -34.48%   10.45%
+    F4           132    0.033   44.7%     1.20%   -15.54%    6.43%
+
+  all_three
+    fold      trades    exp R    win%    return    vs SPY    maxDD
+    F1            77    0.477   45.5%    17.31%   -21.06%    5.29%
+    F2            40   -0.110   27.5%    -3.05%    +9.12%    9.17%
+    F3            86    0.187   41.9%     2.08%   -31.01%    7.66%
+    F4            99    0.142   35.4%     8.28%    -8.46%    7.49%
+
+  verdicts
+    variant                 folds won  mean exp R   vs base   conclusion
+    baseline                        -      -0.042    +0.000   reference
+    shallow                       3/4       0.057    +0.099   held in most folds -- promising
+    long_hold                     4/4       0.015    +0.057   held in EVERY fold -- worth testing on the holdout
+    both                          4/4       0.111    +0.153   held in EVERY fold -- worth testing on the holdout
+    trend_only                    4/4       0.074    +0.116   held in EVERY fold -- worth testing on the holdout
+    all_three                     4/4       0.174    +0.216   held in EVERY fold -- worth testing on the holdout
+
+  Consistency is the test, not the aggregate. A variant that wins
+  on the total but only in one fold is a fitted result wearing a
+  disguise. Nothing here has touched the holdout.
+==============================================================================

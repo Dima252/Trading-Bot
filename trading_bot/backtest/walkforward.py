@@ -57,6 +57,25 @@ class FoldResult:
     def excess(self) -> float:
         return self.benchmark.excess_return(self.curve)
 
+    @property
+    def return_per_dd(self) -> float:
+        from .metrics import risk_adjusted
+
+        return risk_adjusted(self.curve.total_return, self.curve.max_drawdown)
+
+    @property
+    def benchmark_return_per_dd(self) -> float:
+        from .metrics import risk_adjusted
+
+        return risk_adjusted(
+            self.benchmark.total_return, self.benchmark.max_drawdown
+        )
+
+    @property
+    def beats_benchmark_risk_adjusted(self) -> bool:
+        """The bar set in PLAN.md section 5, evaluated per fold."""
+        return self.return_per_dd > self.benchmark_return_per_dd
+
 
 @dataclass
 class WalkForward:
@@ -229,16 +248,27 @@ def format_walkforward(wf: WalkForward) -> str:
         lines.append("")
         lines.append(f"  {name}")
         lines.append(
-            f"    {'fold':<8}{'trades':>8}{'exp R':>9}{'win%':>8}"
-            f"{'return':>10}{'vs SPY':>10}{'maxDD':>9}"
+            f"    {'fold':<7}{'trades':>7}{'exp R':>8}{'win%':>7}"
+            f"{'return':>9}{'vs SPY':>9}{'maxDD':>8}{'bmDD':>8}"
+            f"{'ret/DD':>8}{'bm':>6}   bar"
         )
         for r in wf.for_variant(name):
             lines.append(
-                f"    {r.fold.label:<8}{r.stats.trades:>8}"
-                f"{r.stats.expectancy_r:>9.3f}{r.stats.win_rate:>8.1%}"
-                f"{r.curve.total_return:>10.2%}{r.excess:>+10.2%}"
-                f"{r.curve.max_drawdown:>9.2%}"
+                f"    {r.fold.label:<7}{r.stats.trades:>7}"
+                f"{r.stats.expectancy_r:>8.3f}{r.stats.win_rate:>7.1%}"
+                f"{r.curve.total_return:>9.2%}{r.excess:>+9.2%}"
+                f"{r.curve.max_drawdown:>8.2%}"
+                f"{r.benchmark.max_drawdown:>8.2%}"
+                f"{r.return_per_dd:>8.2f}{r.benchmark_return_per_dd:>6.2f}"
+                f"   {'PASS' if r.beats_benchmark_risk_adjusted else 'fail'}"
             )
+        passes = sum(
+            1 for r in wf.for_variant(name) if r.beats_benchmark_risk_adjusted
+        )
+        lines.append(
+            f"    {'':<7}clears the PLAN section 5 bar in "
+            f"{passes}/{len(wf.for_variant(name))} folds"
+        )
 
     lines.append("")
     lines.append("  verdicts")

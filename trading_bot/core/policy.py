@@ -55,6 +55,18 @@ class Policy:
     # edge, so past this the setup is abandoned rather than bought late.
     max_entry_chase_pct: float = 0.02
 
+    # --- regime gate ---
+    # Which regimes the agent may OPEN new positions in. Defensive exits and
+    # stop maintenance always run regardless -- a gate that could trap you in a
+    # position would be a liability, not a safeguard.
+    #
+    # The first backtest measured trend +0.129R against chop -0.144R over ~535
+    # trades each. Restricting to trend is variant A1; the default stays open so
+    # the baseline is unchanged.
+    tradeable_regimes: list[str] = field(
+        default_factory=lambda: ["trend", "chop", "high_vol"]
+    )
+
     # --- setup tunables ---
     # The ranking diagnostic measured depth_atr at z=-12.1 and rsi at z=+16.4
     # over 25k candidates: the pullback quality score rewards DEEP dips and LOW
@@ -90,6 +102,9 @@ class Policy:
             raise ValueError("max_portfolio_heat cannot be below max_risk_per_trade")
         if self.switching_premium < 1.0:
             raise ValueError("switching_premium below 1.0 guarantees churn")
+
+    def may_open_in(self, regime: str) -> bool:
+        return regime in self.tradeable_regimes
 
     def fit_for(self, setup_type: str, regime: str) -> float:
         return self.regime_fit.get(setup_type, {}).get(regime, 0.5)

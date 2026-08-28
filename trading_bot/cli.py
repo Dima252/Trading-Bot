@@ -166,6 +166,19 @@ def _variants(base: Policy) -> dict[str, Policy]:
             time_stop_days=40,
             max_hold_days=60,
         ),
+        # trend +0.129R vs chop -0.144R over ~535 trades each: the system bleeds
+        # steadily in chop and should not be trading there at all.
+        "trend_only": base.with_changes(
+            version=f"{base.version}-trendonly", tradeable_regimes=["trend"]
+        ),
+        # all three corrections together -- the candidate for the holdout
+        "all_three": base.with_changes(
+            version=f"{base.version}-all3",
+            pullback_favour_shallow=True,
+            time_stop_days=40,
+            max_hold_days=60,
+            tradeable_regimes=["trend"],
+        ),
     }
 
 
@@ -236,6 +249,22 @@ def cmd_job(args) -> int:
     for note in result.notes:
         print(f"  {note}")
     return 0 if result.status in ("ok", "skipped") else 1
+
+
+def cmd_dashboard(args) -> int:
+    """Render the state database as one self-contained HTML page."""
+    from .ui.dashboard import write
+
+    out = write(
+        Repo(args.state),
+        args.out,
+        cache=BarCache(args.bars),
+        policy=_load_policy(args.policy),
+        as_of=args.day,
+    )
+    print(f"wrote {out}  ({out.stat().st_size / 1024:.0f} KB)")
+    print(f"open it with:  start {out}" if sys.platform == "win32" else f"  open {out}")
+    return 0
 
 
 def cmd_report(args) -> int:
@@ -348,6 +377,10 @@ def build_parser() -> argparse.ArgumentParser:
     diag = add("diagnose", "does the ranking function predict anything?")
     diag.add_argument("--start", type=date.fromisoformat, default=None)
     diag.set_defaults(func=cmd_diagnose)
+
+    dash = add("dashboard", "render the state database as an HTML page")
+    dash.add_argument("--out", default="out/dashboard.html")
+    dash.set_defaults(func=cmd_dashboard)
 
     add("report", "live attribution").set_defaults(func=cmd_report)
     add("propose", "evidence-backed policy proposals").set_defaults(func=cmd_propose)

@@ -68,20 +68,91 @@ downstream, and the regression tests for them must never be deleted.
 
 ---
 
+## 2b. Session 2 progress (A1 and B1 complete)
+
+### A1 — the regime gate held, and so did everything else
+
+All three corrections are now pre-registered variants and all three held in
+**every** fold:
+
+| Variant | Folds won | Mean exp R | vs baseline |
+|---|---|---|---|
+| baseline | — | −0.042 | — |
+| `shallow` | 3/4 | +0.057 | +0.099 |
+| `long_hold` | 4/4 | +0.015 | +0.057 |
+| `both` | 4/4 | +0.111 | +0.153 |
+| `trend_only` | 4/4 | +0.074 | +0.116 |
+| **`all_three`** | **4/4** | **+0.174** | **+0.216** |
+
+`all_three` (shallow + long_hold + trend_only) is the strongest: −0.042R becomes
+**+0.174R, positive in all four periods**, with drawdowns of 5–9% against the
+index's 24.5%. Trade count falls from 891 to 302, so it is also far more
+selective.
+
+### But measured against the §5 bar it clears only 2 folds of 4
+
+`return / max drawdown`, per fold:
+
+| Fold | `all_three` | SPY | Verdict |
+|---|---|---|---|
+| F1 2020-08→2021-10 | 3.27 | 4.06 | fail |
+| F2 2021-10→2023-01 | −0.33 | −0.50 | **pass** |
+| F3 2023-01→2024-03 | 0.27 | 3.32 | fail |
+| F4 2024-03→2025-06 | 1.11 | 0.89 | **pass** |
+
+The pattern is consistent and structural, not noise: **it wins risk-adjusted in
+weak and choppy markets and loses in strong ones.** F3 is the clearest case —
++2.08% while SPY did +33%.
+
+What has been built is a **defensive profile**, not an index-beater. More
+parameter work will not change that; it is what a long-only system that sits out
+chop and caps position size does. The walk-forward report now prints this bar
+per fold automatically.
+
+### B1 — the dashboard is built
+
+`python -m trading_bot dashboard --out out/dashboard.html` renders one
+self-contained HTML file from the state database: status bar with per-job
+staleness, equity vs benchmark, open positions, watchlist, **decision log with
+every veto and the rule that fired**, closed trades with MFE/MAE, attribution,
+and shadow-book verdicts. No server, no external assets, no path to an order.
+
+`scripts/rehearse.py` replays the four jobs day by day over real bars against
+the paper broker (PLAN C4, compressed) and leaves a populated database for it to
+render. A 70-session run over 2025 exercised the whole live pipeline for the
+first time: real fills, stops, targets, rotations, 49 closed trades, 272 logged
+decisions.
+
+### Bug found while wiring the rehearsal
+
+`close_job` submitted its breakout entries and then swept all unfilled buy
+orders — **cancelling the orders it had just placed**. A marketable limit fills
+in seconds, but "unfilled" is true for the instant in between, so the
+close-confirmation path could never actually open a position. Fixed; guarded by
+`test_close_does_not_cancel_the_entry_it_just_submitted`.
+
+---
+
 ## 3. The open decision
 
 **Nothing has touched the holdout period (2025-06-11 → 2026-08-27).** It can be
-spent exactly once.
+spent exactly once. The rehearsal script refuses to run past 2025-06-10 for this
+reason.
 
-The last thing discussed, unresolved: the original backtest showed **trend
-+0.129R vs chop −0.144R** (n≈535 each). A regime gate — sitting out chop
-entirely — is the most promising untested lever, and it addresses the actual
-problem: the system is under-invested in exactly the markets where returns
-happen.
+The regime gate has now been tested (§2b) and `all_three` is the candidate. The
+question is no longer *which* variant — it is whether spending the holdout is
+worth it yet.
 
-**Recommendation: test the regime gate across the four folds first, then spend
-the holdout once on the best combination.** Spending it on a variant already
-suspected of being incomplete wastes the only clean evidence available.
+**Recommendation: do not spend it on `all_three` as it stands.** In-fold it
+clears the §5 bar in 2 of 4 periods, so the expected holdout result is close to
+a coin flip, and that is a poor use of the only clean test available.
+
+The prior question is strategic, not technical: **is a defensive profile what
+you want?** The evidence is now clear and consistent that this is what the
+system produces. If the answer is yes, spend the holdout to confirm it. If the
+answer is "it must beat buy-and-hold", this approach will not, and the honest
+move is a different game — a less efficient universe, a longer holding period,
+or a different edge type — rather than more tuning of this one.
 
 ---
 
