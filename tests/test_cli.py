@@ -14,10 +14,11 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from trading_bot.cli import _regime_on_file, build_parser, cmd_daily
+from trading_bot.cli import build_parser, cmd_daily
 from trading_bot.core.models import Regime
 from trading_bot.core.policy import Policy
 from trading_bot.db.repo import Repo
+from trading_bot.jobs.base import regime_on_file
 from trading_bot.market_hours import today_exchange
 
 
@@ -154,7 +155,7 @@ class _FakePath:
 def test_regime_is_none_when_no_scan_has_run() -> None:
     """None must not resolve to the permissive answer downstream."""
     ctx = type("Ctx", (), {"repo": Repo(":memory:"), "day": date(2026, 3, 2)})()
-    assert _regime_on_file(ctx) is None
+    assert regime_on_file(ctx.repo, ctx.day) is None
 
 
 def test_regime_round_trips_from_what_evening_recorded() -> None:
@@ -162,7 +163,7 @@ def test_regime_round_trips_from_what_evening_recorded() -> None:
     repo.record_equity(date(2026, 3, 2), cash=1.0, equity=1.0, regime="chop")
     ctx = type("Ctx", (), {"repo": repo, "day": date(2026, 3, 5)})()
 
-    assert _regime_on_file(ctx) is Regime.CHOP
+    assert regime_on_file(ctx.repo, ctx.day) is Regime.CHOP
 
 
 def test_an_unrecognised_regime_declines_rather_than_guesses() -> None:
@@ -171,7 +172,7 @@ def test_an_unrecognised_regime_declines_rather_than_guesses() -> None:
     repo.record_equity(date(2026, 3, 2), cash=1.0, equity=1.0, regime="sideways?")
     ctx = type("Ctx", (), {"repo": repo, "day": date(2026, 3, 5)})()
 
-    assert _regime_on_file(ctx) is None
+    assert regime_on_file(ctx.repo, ctx.day) is None
 
 
 def test_the_shipped_policy_still_opens_only_in_trend() -> None:

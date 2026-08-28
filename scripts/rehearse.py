@@ -27,7 +27,7 @@ from trading_bot.data.cache import BarCache
 from trading_bot.data.universe import BENCHMARK, SECTORS
 from trading_bot.db.repo import Repo
 from trading_bot.jobs import close_job, evening, open_job, premarket
-from trading_bot.jobs.base import AgentContext
+from trading_bot.jobs.base import AgentContext, regime_on_file
 from trading_bot.semantic.client import NullSemanticEngine
 
 # The last stretch of fold F4. Never crosses into the holdout.
@@ -104,9 +104,12 @@ def main() -> None:
         ctx = context(day)
 
         premarket.run(ctx, NullSemanticEngine())
-        open_result = open_job.run(ctx)
+        # Resolved exactly as the CLI does. A rehearsal that took a
+        # different path from production would rehearse something else.
+        regime = regime_on_file(ctx.repo, day)
+        open_result = open_job.run(ctx, regime)
         events = advance(day)                      # resting limits fill, OCO fires
-        close_result = close_job.run(ctx, prices=closes_on(day))
+        close_result = close_job.run(ctx, prices=closes_on(day), regime=regime)
         events += advance(day)                     # close-confirmed entries fill
         evening.run(ctx)
 

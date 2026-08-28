@@ -11,7 +11,7 @@ and forward plan.
 | | |
 |---|---|
 | Implementation | ~8,900 lines, 58 modules |
-| Tests | **326 passing**, ~22s, 84% coverage, `ruff` clean |
+| Tests | **332 passing**, ~22s, 84% coverage, `ruff` clean |
 | Market data | 887,235 daily bars, 505 symbols, 2019-07 → 2026-08 |
 | Shipping config | `config/policy.yaml` **v2-holdout** — frozen, out-of-sample tested |
 | Broker | Alpaca paper connected and verified ($100k account) |
@@ -21,7 +21,7 @@ and forward plan.
 ### What runs today
 
 ```bash
-python -m pytest -q                    # 326 tests
+python -m pytest -q                    # 332 tests
 python -m ruff check .                 # lint, incl. the datetime rules
 python scripts/demo.py                 # decision core on a hand-built book
 python -m trading_bot fetch            # real bars, no API key needed (Yahoo)
@@ -216,6 +216,60 @@ stood in for it being settled; coverage reaching `end` stood in for it being
 correct; a parameter default stood in for a measurement. None announced itself,
 and the tests passed throughout. Worth asking of anything added later: **is this
 value measured, or merely assumed?**
+
+---
+
+## 2d. The trade record was not the trades (found 2026-08-28)
+
+Running `scripts/rehearse.py` after the §2c fixes produced **zero trades over 89
+sessions**, which was a regression from the regime change — the script called the
+jobs without a regime. Fixing that surfaced something much worse underneath.
+
+**The equity was always right. The record of why was not.** Over 90 sessions the
+paper broker held $103,390 while the `trades` table explained $91,060: a
+**$12,330 hole**, and every dollar of it a real trade that happened and was never
+written down.
+
+Four defects, all in the live job path. The backtest engine was never affected —
+it has had `test_equity_reconciles_with_realised_pnl` since the beginning, and
+that is exactly the test the live path did not have.
+
+| # | Defect | Effect |
+|---|---|---|
+| 1 | `execute()` dropped the position annotation the instant it sent a CLOSE | The reconciler writes trades by finding annotations whose broker position has vanished. With the annotation already gone there was nothing to match, so **every deliberate exit** — time stop, invalidated thesis, rotation — was missing from `trades` |
+| 2 | Trades were booked at the price the order **asked for**, not the fill | The annotation holds the planned limit; nothing ever synced the broker's actual fill. A limit only ever fills *better*, so the bias runs one way |
+| 3 | An entry that never filled still had an optimistic annotation | Written up as a loss at the stop — a **fabricated trade**, indistinguishable downstream from a real one |
+| 4 | A cancelled re-entry matched the *previous* round trip's orders | The earlier trade was written a second time. Survived the first fix; needed the deterministic `client_order_id` to tell the two apart |
+
+### Why this mattered more than the amount
+
+`trades` is what `report`, `attribution` and `tune` all read. Defect 1 alone
+removed the bot's own management decisions from the record while leaving the
+broker's (stops, targets) in — so the measured strategy was the strategy
+*without its management*, which is precisely the comparison the learning layer
+exists to make. The rehearsal's win rate went from **16% to 53%** on the same
+price action and the same final equity.
+
+Had the six-month trial started on this, every number it produced would have
+been wrong in the pessimistic direction, and the stopping rule in §5d would have
+been evaluated against a fiction.
+
+### The guard
+
+`test_the_books_reconcile_across_a_full_cycle` asserts, after every session:
+
+```
+equity == starting equity + sum(recorded pnl) + unrealised on open
+```
+
+plus `test_every_exit_is_recorded_exactly_once` and four focused tests in
+`tests/test_reconcile.py`. Each was checked by reintroducing its bug and
+confirming the suite fails — a regression test that passes on the broken code is
+worse than none.
+
+**The lesson:** the invariant existed and was tested in the backtest. Nobody
+carried it across to the code that will actually handle money. When a property is
+worth asserting in simulation, the live path is where it *matters*.
 
 ---
 

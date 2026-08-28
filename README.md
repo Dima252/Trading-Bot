@@ -764,7 +764,7 @@ quietly not working.
 
 ## 18. Testing
 
-**326 tests, no network, no credentials, ~21 seconds.** Coverage is 84%; `ruff`
+**332 tests, no network, no credentials, ~22 seconds.** Coverage is 84%; `ruff`
 is clean with `E,F,I,UP,B,SIM,DTZ,RUF` enabled.
 
 ```bash
@@ -794,6 +794,10 @@ The ones that carry the most weight:
   live system must not trade regimes the backtest never traded.
 - **`test_cli.py::test_the_shipped_policy_still_opens_only_in_trend`** — if this
   fails, the deployed system is no longer the one the holdout validated.
+- **`test_jobs.py::test_the_books_reconcile_across_a_full_cycle`** — the live-path
+  twin of the equity test above: after every session, the broker's equity must
+  equal starting equity plus recorded P&L plus unrealised. Four defects lived in
+  the gap where this test wasn't (PLAN §2d), and all four were silent.
 
 ---
 
@@ -801,7 +805,7 @@ The ones that carry the most weight:
 ## Status
 
 **Phases 0–6, 8 and 9 are built.** ~8,840 lines of implementation across 58
-modules, ~4,476 lines of tests, **326 passing**, 84% coverage, lint clean.
+modules, ~4,833 lines of tests, **332 passing**, 84% coverage, lint clean.
 
 ### What has actually been done
 

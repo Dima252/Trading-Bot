@@ -190,6 +190,20 @@ class Repo:
             for r in self.conn.execute("SELECT * FROM positions").fetchall()
         }
 
+    def sync_entry_fill(self, ticker: str, entry_price: float, entry_qty: int) -> None:
+        """Replace the planned entry with what the broker actually filled.
+
+        The annotation is written at submission, so its entry price is the limit
+        we asked for. A resting limit can fill better than that on a gap, and a
+        market order rarely fills exactly where expected -- and every trade's
+        P&L and R multiple are computed from this number.
+        """
+        self.conn.execute(
+            "UPDATE positions SET entry_price=?, entry_qty=? WHERE ticker=?",
+            (round(entry_price, 4), int(entry_qty), ticker),
+        )
+        self.conn.commit()
+
     def drop_position_annotation(self, ticker: str) -> None:
         self.conn.execute("DELETE FROM positions WHERE ticker=?", (ticker,))
         self.conn.commit()

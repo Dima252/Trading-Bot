@@ -385,6 +385,113 @@ def test_close_cancels_unfilled_entry_orders(ctx) -> None:
 # --- the whole cycle ------------------------------------------------------ #
 
 
+def test_the_books_reconcile_across_a_full_cycle(ctx, market) -> None:
+    """Every dollar the broker holds is explained by a recorded trade.
+
+        equity == starting equity + sum(recorded pnl) + unrealised on open
+
+    The backtest engine has had this invariant under test from the beginning.
+    The live path -- paper broker, reconciler, repo -- did not, and three
+    separate defects lived in that gap for as long as it was untested:
+
+    * the executor dropped the position annotation the moment it sent a CLOSE,
+      and the reconciler writes trades by finding annotations whose position has
+      vanished -- so every deliberate exit (time stop, invalidated thesis,
+      rotation) was missing from `trades` entirely;
+    * closed trades were booked at the price the order ASKED for rather than the
+      price it got, which biases P&L in one direction because a limit only ever
+      fills better than its price;
+    * an entry that never filled still had an optimistic annotation, and that
+      was written up as a loss at the stop -- a fabricated trade, indistinguish-
+      able downstream from a real one.
+
+    None of them raised anything. The equity number stayed right, because the
+    broker was never wrong; only the record of WHY was.
+    """
+    universe, _, _ = market
+    days = universe["SPY"].days
+    start = days.index(ctx.day)
+    starting_equity = ctx.broker.account().equity
+
+    evening.run(ctx)
+
+    for offset in range(1, 6):
+        day = days[start + offset]
+        session = replace(ctx, day=day)
+
+        premarket.run(session, NullSemanticEngine())
+        open_job.run(session, Regime.TREND)
+        for symbol in universe:
+            if symbol != "SPY":
+                ctx.broker.advance(symbol, bar_for(universe, symbol, day))
+
+        prices = {
+            c.ticker: bar_for(universe, c.ticker, day).close
+            for c in ctx.repo.pending_candidates(ctx.repo.latest_candidate_day(day))
+            if c.ticker in universe
+        }
+        close_job.run(session, prices=prices, regime=Regime.TREND)
+        ctx.broker.roll_day()
+        evening.run(session)
+
+        realised = sum(t["pnl"] for t in ctx.repo.trades())
+        unrealised = sum(
+            (bar_for(universe, p.ticker, day).close - p.avg_entry_price) * p.qty
+            for p in ctx.broker.positions()
+            if p.ticker in universe
+        )
+        equity = ctx.broker.account().equity
+
+        assert equity == pytest.approx(
+            starting_equity + realised + unrealised, abs=1.0
+        ), (
+            f"{day}: broker holds ${equity:,.2f} but the record explains "
+            f"${starting_equity + realised + unrealised:,.2f} "
+            f"(realised {realised:,.2f}, unrealised {unrealised:,.2f})"
+        )
+
+
+def test_every_exit_is_recorded_exactly_once(ctx, market) -> None:
+    """A trade the broker closed must appear in `trades` -- once, not zero times
+    and not twice. Attribution, the shadow book and the tuning proposals all
+    read that table, so a gap there is invisible and permanent."""
+    universe, _, _ = market
+    days = universe["SPY"].days
+    start = days.index(ctx.day)
+
+    exits: list[str] = []
+    original = type(ctx.broker)._liquidate
+
+    def spy(self, ticker, price, reason):
+        exits.append(ticker)
+        return original(self, ticker, price, reason)
+
+    type(ctx.broker)._liquidate = spy
+    try:
+        evening.run(ctx)
+        for offset in range(1, 6):
+            day = days[start + offset]
+            session = replace(ctx, day=day)
+            premarket.run(session, NullSemanticEngine())
+            open_job.run(session, Regime.TREND)
+            for symbol in universe:
+                if symbol != "SPY":
+                    ctx.broker.advance(symbol, bar_for(universe, symbol, day))
+            close_job.run(session, prices={}, regime=Regime.TREND)
+            ctx.broker.roll_day()
+            evening.run(session)
+    finally:
+        type(ctx.broker)._liquidate = original
+
+    recorded = [t["ticker"] for t in ctx.repo.trades()]
+    still_open = {p.ticker for p in ctx.broker.positions()}
+
+    assert sorted(recorded) == sorted(exits), (
+        f"broker closed {sorted(exits)} but {sorted(recorded)} was recorded"
+    )
+    assert not (set(recorded) & still_open), "recorded a trade for a live position"
+
+
 def test_a_full_day_cycle_keeps_the_database_and_broker_in_agreement(
     ctx, market
 ) -> None:

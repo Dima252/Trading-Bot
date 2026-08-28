@@ -13,7 +13,6 @@ import pathlib
 import sys
 from datetime import date, timedelta
 
-from .core.models import Regime
 from .core.policy import Policy
 from .data.cache import BarCache
 from .db.repo import Repo
@@ -393,6 +392,7 @@ def cmd_holdout(args) -> int:
 
 def cmd_job(args) -> int:
     from .jobs import close_job, evening, open_job, premarket
+    from .jobs.base import regime_on_file
 
     ctx = _context(args)
     if args.command == "evening":
@@ -408,14 +408,14 @@ def cmd_job(args) -> int:
                 print(f"semantic engine unavailable ({exc}); running calendar-only")
         result = premarket.run(ctx, engine)
     elif args.command == "open":
-        result = open_job.run(ctx, _regime_on_file(ctx))
+        result = open_job.run(ctx, regime_on_file(ctx.repo, ctx.day))
     else:
         from .data.alpaca_data import AlpacaData
 
         day = ctx.repo.latest_candidate_day(ctx.day)
         pending = ctx.repo.pending_candidates(day) if day else []
         prices = AlpacaData().latest_prices([c.ticker for c in pending])
-        result = close_job.run(ctx, prices, _regime_on_file(ctx))
+        result = close_job.run(ctx, prices, regime_on_file(ctx.repo, ctx.day))
 
     print(f"\n[{result.job}] {result.status}: {result.summary}")
     for note in result.notes:
@@ -483,24 +483,6 @@ def cmd_daily(args) -> int:
     print(f"read it:  {'start' if sys.platform == 'win32' else 'open'} {out}")
 
     return 0 if result.status in ("ok", "skipped") else 1
-
-
-def _regime_on_file(ctx) -> Regime | None:
-    """The regime the last evening scan measured, or None if there isn't one.
-
-    The intraday jobs cannot classify the regime themselves -- at 10:00 today's
-    bar is still forming, and a regime read off an unsettled close is not a
-    regime. So they inherit the last one derived from settled data, and decline
-    to open when there is none.
-    """
-    recorded = ctx.repo.last_regime(ctx.day)
-    if recorded is None:
-        return None
-    try:
-        return Regime(recorded)
-    except ValueError:
-        # An unrecognised value is a schema drift, not a trading signal.
-        return None
 
 
 def cmd_dashboard(args) -> int:

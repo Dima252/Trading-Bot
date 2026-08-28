@@ -25,13 +25,41 @@ from ..broker.base import Broker, BrokerError
 from ..broker.orders import bracket_from_action, client_order_id
 from ..broker.reconcile import Reconciliation, reconcile
 from ..core.constraints import ConstraintLayer
-from ..core.models import Action, ActionKind, EntryType, Portfolio, Rejection
+from ..core.models import (
+    Action,
+    ActionKind,
+    EntryType,
+    Portfolio,
+    Regime,
+    Rejection,
+)
 from ..core.policy import Policy
 from ..data.cache import BarCache
 from ..db.repo import Repo
 from ..ops.notify import Level, format_summary, heartbeat, notify
 
 log = logging.getLogger("trading_bot")
+
+
+def regime_on_file(repo: Repo, day: date) -> Regime | None:
+    """The regime the last evening scan measured, or None if there isn't one.
+
+    The intraday jobs cannot classify this themselves: at 10:00 today's bar is
+    still forming, and a regime read off an unsettled close is not a regime. So
+    they inherit the last one derived from settled data.
+
+    Lives here rather than in the CLI so that every caller -- the scheduled jobs
+    and the rehearsal script alike -- resolves it identically. A rehearsal that
+    took a different path from production would be rehearsing something else.
+    """
+    recorded = repo.last_regime(day)
+    if recorded is None:
+        return None
+    try:
+        return Regime(recorded)
+    except ValueError:
+        # An unrecognised value is schema drift, not a trading signal.
+        return None
 
 
 @dataclass
@@ -209,7 +237,15 @@ def _execute_one(ctx: AgentContext, action: Action, result: JobResult) -> None:
 
     if action.kind is ActionKind.CLOSE:
         ctx.broker.close_position(action.ticker)
-        ctx.repo.drop_position_annotation(action.ticker)
+        # The annotation is deliberately LEFT IN PLACE. It is what the next
+        # reconcile matches against to notice the position is gone and write the
+        # closed trade; dropping it here made every deliberate exit -- time
+        # stops, invalidated theses, rotations -- vanish from `trades`, leaving
+        # attribution with only the exits the broker happened to fire itself.
+        #
+        # Waiting also gets the price right. `close_position` submits a market
+        # order; at Alpaca the fill is not known when this returns, so recording
+        # now would mean guessing. Reconciliation observes the actual fill.
         result.executed.append(action)
         result.note(f"CLOSE {action.ticker}: {action.reason}")
 
