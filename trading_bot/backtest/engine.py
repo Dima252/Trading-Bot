@@ -113,6 +113,7 @@ class Backtest:
         sectors: dict[str, str],
         config: BacktestConfig,
         policy: Policy,
+        indicators: dict[str, Indicators] | None = None,
     ) -> None:
         if config.benchmark not in universe:
             raise ValueError(f"benchmark {config.benchmark!r} missing from universe")
@@ -134,9 +135,13 @@ class Backtest:
             else None
         )
         self.interest_earned = 0.0
-        self.indicators: dict[str, Indicators] = {
-            s: Indicators.compute(b) for s, b in universe.items()
-        }
+        # Indicators depend only on bars, never on policy, so a walk-forward can
+        # compute them once and share them across every fold and variant.
+        self.indicators: dict[str, Indicators] = (
+            indicators
+            if indicators is not None
+            else {s: Indicators.compute(b) for s, b in universe.items()}
+        )
 
         self.cash = config.starting_equity
         self._regime = Regime.TREND
@@ -228,7 +233,7 @@ class Backtest:
             benchmark,
             day,
             self.indicators[self.config.benchmark],
-            breadth=breadth_of(self.tradeable, day),
+            breadth=breadth_of(self.tradeable, day, self.indicators),
         )
 
     def _think(self, day: date, context: MarketContext) -> None:
@@ -455,5 +460,8 @@ def run_backtest(
     sectors: dict[str, str],
     config: BacktestConfig,
     policy: Policy | None = None,
+    indicators: dict[str, Indicators] | None = None,
 ) -> BacktestResult:
-    return Backtest(universe, sectors, config, policy or Policy()).run()
+    return Backtest(
+        universe, sectors, config, policy or Policy(), indicators
+    ).run()

@@ -23,7 +23,7 @@ from datetime import date
 
 from ..core.policy import Policy
 from ..data.models import BarSeries
-from .engine import BacktestConfig, run_backtest
+from .engine import BacktestConfig, Indicators, run_backtest
 from .metrics import (
     BenchmarkStats,
     CurveStats,
@@ -138,6 +138,12 @@ def run_walkforward(
     cash_rate_symbol: str | None = None,
     progress: bool = True,
 ) -> WalkForward:
+    from .engine import Indicators
+
+    if progress:
+        print(f"  computing indicators for {len(universe)} symbols...", flush=True)
+    shared = {s: Indicators.compute(b) for s, b in universe.items()}
+
     out = WalkForward(baseline=baseline, folds=folds)
 
     for fold in folds:
@@ -158,6 +164,7 @@ def run_walkforward(
                     cash_rate_symbol=cash_rate_symbol,
                 ),
                 policy,
+                indicators=shared,
             )
             out.results.append(
                 FoldResult(

@@ -54,17 +54,36 @@ def classify(
     )
 
 
-def breadth_of(universe: dict[str, BarSeries], day: date) -> float:
-    """Fraction of the universe trading above its own 50-day average."""
+def breadth_of(
+    universe: dict[str, BarSeries],
+    day: date,
+    indicators: dict[str, "Indicators"] | None = None,
+) -> float:
+    """Fraction of the universe trading above its own 50-day average.
+
+    Pass `indicators` to reuse the precomputed SMA50. Without it this recomputes
+    a 50-bar mean for every symbol on every session, which is the difference
+    between a backtest that finishes and one that does not once the universe is
+    a few hundred names.
+    """
     above = total = 0
-    for series in universe.values():
+    for symbol, series in universe.items():
         i = series.index_asof(day)
         if i is None or i < 50:
             continue
-        window = series.closes[i - 49 : i + 1]
-        if len(window) < 50:
-            continue
+
+        mean = None
+        if indicators is not None:
+            ind = indicators.get(symbol)
+            if ind is not None:
+                mean = ind.sma50[i]
+        if mean is None:
+            window = series.closes[i - 49 : i + 1]
+            if len(window) < 50:
+                continue
+            mean = sum(window) / 50
+
         total += 1
-        if series[i].close > sum(window) / 50:
+        if series[i].close > mean:
             above += 1
     return above / total if total else 0.5

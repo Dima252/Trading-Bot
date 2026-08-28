@@ -1,17 +1,29 @@
 """What the agent is allowed to trade, and the sector map the exposure limit
 needs.
 
-SURVIVORSHIP WARNING: this is a present-day list of names that survived and
-stayed liquid. Backtesting on it is biased upward and there is no cheap fix at
-this scale. Use results for RELATIVE comparisons -- setup vs setup, regime vs
-regime, filter vs no filter -- and discount absolute returns (README section 10).
+Two universes:
+
+  WIDE (default)   the S&P 500, frozen into config/universe_sp500.json
+  NARROW           the 85 hand-listed mega caps below, as a fallback
+
+SURVIVORSHIP WARNING, and it is worse for the wide list. Both are present-day
+membership snapshots, so every name in them survived. But index membership is
+also *awarded after a company has already done well*, so the wide list adds
+index-addition bias on top. Backtests on either are optimistic; the wide one
+more so. What stays valid is the RELATIVE comparison -- narrow vs wide, setup vs
+setup, filter vs no filter -- because both carry the same bias in the same
+direction (README section 10).
 """
 
 from __future__ import annotations
 
+import json
+import os
 from datetime import date
 
 from .models import BarSeries
+
+WIDE_UNIVERSE_FILE = os.path.join("config", "universe_sp500.json")
 
 BENCHMARK = "SPY"
 
@@ -65,6 +77,30 @@ SECTORS: dict[str, str] = {
     "LIN": "Materials", "SHW": "Materials", "FCX": "Materials",
 }
 
+NARROW_SECTORS: dict[str, str] = dict(SECTORS)
+
+
+def _load_wide() -> dict[str, str] | None:
+    """The frozen index snapshot, if it has been captured."""
+    try:
+        with open(WIDE_UNIVERSE_FILE, "r", encoding="utf-8") as fh:
+            return dict(json.load(fh)["sectors"])
+    except (OSError, KeyError, ValueError):
+        return None
+
+
+def load_sectors(wide: bool = True) -> dict[str, str]:
+    """Ticker -> sector. Falls back to the narrow list when the snapshot is
+    missing, rather than silently trading a universe with no sector map."""
+    if wide:
+        loaded = _load_wide()
+        if loaded:
+            return loaded
+    return dict(NARROW_SECTORS)
+
+
+# Module-level default, so existing callers pick up the wide list automatically.
+SECTORS = load_sectors(wide=True)
 DEFAULT_UNIVERSE: list[str] = sorted(SECTORS)
 
 

@@ -241,3 +241,39 @@ def test_policy_snapshot_makes_versions_resolvable(repo: Repo) -> None:
     active = repo.active_policy()
     assert active["version"] == "v1"
     assert active["max_risk_per_trade"] == 0.01
+
+
+# --- universe loading ----------------------------------------------------- #
+
+
+def test_the_wide_universe_loads_with_sectors() -> None:
+    from trading_bot.data.universe import load_sectors
+
+    wide = load_sectors(wide=True)
+    assert len(wide) > 400
+    assert all(isinstance(v, str) and v for v in wide.values())
+    assert "AAPL" in wide
+
+
+def test_the_narrow_list_is_the_fallback() -> None:
+    """A missing snapshot must fall back, never trade with no sector map."""
+    from trading_bot.data import universe as u
+
+    narrow = u.load_sectors(wide=False)
+    assert 50 < len(narrow) < 200
+    assert set(narrow.values())  # every name has a sector
+
+
+def test_a_missing_snapshot_falls_back(monkeypatch) -> None:
+    from trading_bot.data import universe as u
+
+    monkeypatch.setattr(u, "WIDE_UNIVERSE_FILE", "does/not/exist.json")
+    assert u.load_sectors(wide=True) == u.load_sectors(wide=False)
+
+
+def test_index_and_rate_series_are_not_tradeable() -> None:
+    from trading_bot.data.universe import is_tradeable
+
+    assert not is_tradeable("SPY")
+    assert not is_tradeable("^IRX")
+    assert is_tradeable("AAPL")

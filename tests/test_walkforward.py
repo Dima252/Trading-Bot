@@ -173,3 +173,38 @@ def test_the_shallow_flag_actually_changes_the_scores() -> None:
 
     assert normal and flipped
     assert normal[0].setup_quality != flipped[0].setup_quality
+
+
+# --- the shared indicator cache ------------------------------------------- #
+
+
+def test_sharing_indicators_does_not_change_results() -> None:
+    """An optimisation that alters the answer is a bug, not an optimisation."""
+    from trading_bot.backtest.engine import BacktestConfig, run_backtest
+    from trading_bot.signals.engine import Indicators
+
+    universe, sectors = random_universe(n_symbols=6, n_bars=600, seed=9)
+    days = universe["SPY"].days
+    cfg = BacktestConfig(start=days[300], end=days[-1], starting_equity=100_000.0)
+
+    fresh = run_backtest(universe, sectors, cfg)
+    shared = run_backtest(
+        universe,
+        sectors,
+        cfg,
+        indicators={s: Indicators.compute(b) for s, b in universe.items()},
+    )
+    assert fresh.trades == shared.trades
+    assert fresh.curve == shared.curve
+
+
+def test_breadth_matches_with_and_without_the_cache() -> None:
+    from trading_bot.signals.engine import Indicators
+    from trading_bot.signals.regime import breadth_of
+
+    universe, _ = random_universe(n_symbols=8, n_bars=400, seed=4)
+    indicators = {s: Indicators.compute(b) for s, b in universe.items()}
+    for day in universe["SPY"].days[300::40]:
+        assert breadth_of(universe, day) == pytest.approx(
+            breadth_of(universe, day, indicators)
+        )
