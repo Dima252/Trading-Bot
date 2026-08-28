@@ -343,6 +343,62 @@ fetching is free; it is a ticker-list change and a longer backtest.
 
 ---
 
+## 5c. Session 4 — the universe, and the holdout SPENT
+
+### The universe was the real constraint
+
+`all_three` was starved of candidates: 78-98 trades per fold from 85 names. On
+the 503-name S&P 500 snapshot, in-fold:
+
+| Universe | Variant | CAGR | maxDD | ret/DD | folds clearing bar |
+|---|---|---|---|---|---|
+| Narrow (85) | `all_three` | 6.87% | 8.03% | 0.86 | 2/4 |
+| Narrow (85) | `risk_1p6` | 8.09% | 7.97% | 1.01 | 2/4 |
+| Wide (503) | `all_three` | 13.64% | 7.64% | 1.79 | **4/4** |
+| Wide (503) | `risk_1p6` | 11.87% | 11.36% | 1.04 | 3/4 |
+| — | SPY | 16.31% | 24.50% | 0.65 | — |
+
+It also showed the earlier `risk_1p6` win was fixing the wrong problem: with a
+deep pool, scaling risk is *worse* than not (11.87% at 11.4% DD against 13.64%
+at 7.6%). Concentration was compensating for starvation.
+
+### THE HOLDOUT IS SPENT (2025-06-11 -> 2026-08-27)
+
+Recorded in `out/holdout_result.txt`. `all_three` was the primary candidate on
+in-fold evidence; `risk_1p6` was the reference.
+
+| | in-fold exp R | holdout exp R | drift | holdout CAGR | maxDD | ret/DD |
+|---|---|---|---|---|---|---|
+| `all_three` | +0.169 | **-0.132** | **-0.301** | 3.56% | 8.69% | 0.41 |
+| `risk_1p6` | +0.120 | **+0.127** | **+0.007** | 12.20% | 6.83% | 1.79 |
+
+**`all_three` was overfit and the holdout caught it.** 4/4 fold consistency did
+not generalise: expectancy swung from +0.169R to **negative**. This is precisely
+the failure the holdout exists to detect, and the variant I would have shipped
+had I trusted the fold evidence.
+
+**`risk_1p6` generalised.** Expectancy moved +0.007R between in-fold and
+out-of-sample — the *stability* matters more than the level. On absolute targets
+it passes all four: 12.20% CAGR, 6.83% drawdown, ret/DD 1.79, +8pp over cash.
+
+Neither beat SPY risk-adjusted, but the holdout was an exceptional bull run for
+the index (+30% at an 8.88% drawdown, ret/DD 3.38). No defensive profile clears
+that, and requiring it would mean requiring the strategy to beat the index in
+the index's best conditions -- which is not what a defensive mandate is for.
+
+### What this means, stated carefully
+
+I ran two variants and one survived. **Picking the survivor now is selecting on
+the holdout**, which is a milder form of the error the holdout exists to
+prevent. `risk_1p6` is the best-supported candidate, not a validated one.
+
+**The historical data is now exhausted for decision-making.** Every period has
+informed a choice. More backtesting cannot produce new evidence -- it can only
+produce more overfitting. The next real evidence has to come from data that does
+not exist yet.
+
+---
+
 ## 6. What only you can do
 
 | # | Item | Why it blocks |

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import pathlib
 import sys
 from datetime import date, timedelta
 
@@ -279,6 +280,72 @@ def cmd_walkforward(args) -> int:
     return 0
 
 
+def cmd_holdout(args) -> int:
+    """Spend the holdout. Once.
+
+    Everything else in this tool can be re-run freely. This cannot: the value of
+    the holdout is that no decision has been fitted to it, and running a variant
+    here consumes that for the variant. The result is written to disk so the
+    event is on the record rather than in someone's memory.
+    """
+    from .backtest.walkforward import (
+        format_walkforward,
+        make_folds,
+        run_walkforward,
+    )
+    from .data.universe import BENCHMARK, CASH_RATE, SECTORS
+    from .signals.engine import MIN_HISTORY
+
+    cache = BarCache(args.bars)
+    universe = cache.load_many(cache.symbols(), min_bars=MIN_HISTORY)
+    if BENCHMARK not in universe:
+        print(f"no {BENCHMARK} in the cache -- run `fetch` first", file=sys.stderr)
+        return 1
+
+    _, holdout = make_folds(universe[BENCHMARK].days, n_folds=args.folds)
+    if holdout is None:
+        print("no holdout period available", file=sys.stderr)
+        return 1
+
+    base = _load_policy(args.policy)
+    variants = {k: v for k, v in _variants(base).items() if k in args.variants}
+    if not variants:
+        print(f"unknown variants: {args.variants}", file=sys.stderr)
+        return 1
+
+    print("=" * 78)
+    print("SPENDING THE HOLDOUT")
+    print("=" * 78)
+    print(f"  period   {holdout.span}")
+    print(f"  variants {', '.join(variants)}")
+    print("  This period has not informed any decision. After this run it has.")
+    print()
+
+    wf = run_walkforward(
+        universe, dict(SECTORS), variants, [holdout],
+        baseline=args.variants[0], benchmark=BENCHMARK, cash_rate_symbol=CASH_RATE,
+    )
+    text = format_walkforward(wf)
+    print()
+    print(text)
+
+    out = pathlib.Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    header = "\n".join(
+        [
+            f"HOLDOUT SPENT {date.today()}",
+            f"period {holdout.span}",
+            f"variants {', '.join(variants)}",
+            "",
+            "",
+        ]
+    )
+    out.write_text(header + text + "\n", encoding="utf-8")
+    print()
+    print(f"recorded to {out}")
+    return 0
+
+
 def cmd_job(args) -> int:
     from .jobs import close_job, evening, open_job, premarket
 
@@ -433,6 +500,12 @@ def build_parser() -> argparse.ArgumentParser:
     wf.add_argument("--no-holdout", action="store_true")
     wf.add_argument("--only", nargs="*", help="restrict to named variants")
     wf.set_defaults(func=cmd_walkforward)
+
+    hold = add("holdout", "spend the holdout on named variants -- ONE SHOT")
+    hold.add_argument("variants", nargs="+", help="first name is the reference")
+    hold.add_argument("--folds", type=int, default=4)
+    hold.add_argument("--out", default="out/holdout_result.txt")
+    hold.set_defaults(func=cmd_holdout)
 
     diag = add("diagnose", "does the ranking function predict anything?")
     diag.add_argument("--start", type=date.fromisoformat, default=None)

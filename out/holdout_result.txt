@@ -1,0 +1,29 @@
+HOLDOUT SPENT 2026-08-28
+period 2025-06-11 -> 2026-08-27
+variants all_three, risk_1p6
+
+==============================================================================
+WALK-FORWARD
+==============================================================================
+  1 folds, 2 variants
+    HOLDOUT  2025-06-11 -> 2026-08-27
+
+  all_three
+    fold    trades   exp R   win%   return   vs SPY   maxDD    bmDD  ret/DD    bm   bar
+    HOLDOUT     87  -0.132  29.9%    4.33%  -25.70%   8.69%   8.88%    0.50  3.38   fail
+           clears the PLAN section 5 bar in 0/1 folds
+
+  risk_1p6
+    fold    trades   exp R   win%   return   vs SPY   maxDD    bmDD  ret/DD    bm   bar
+    HOLDOUT     61   0.127  37.7%   14.95%  -15.08%   6.83%   8.88%    2.19  3.38   fail
+           clears the PLAN section 5 bar in 0/1 folds
+
+  verdicts
+    variant                 folds won  mean exp R   vs base   conclusion
+    all_three                       -      -0.132    +0.000   too few trades to judge
+    risk_1p6                      1/1       0.127    +0.259   too few trades to judge
+
+  Consistency is the test, not the aggregate. A variant that wins
+  on the total but only in one fold is a fitted result wearing a
+  disguise. Nothing here has touched the holdout.
+==============================================================================
