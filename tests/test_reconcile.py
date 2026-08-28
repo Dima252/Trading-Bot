@@ -24,8 +24,8 @@ def repo() -> Repo:
     return Repo(":memory:")
 
 
-def bar(o, h, l, c, day=DAY) -> Bar:
-    return Bar(day, o, h, l, c, 1_000_000.0)
+def bar(o, h, lo, c, day=DAY) -> Bar:
+    return Bar(day, o, h, lo, c, 1_000_000.0)
 
 
 def annotate(repo: Repo, ticker: str, *, entry=100.0, qty=100, days_ago=3) -> None:

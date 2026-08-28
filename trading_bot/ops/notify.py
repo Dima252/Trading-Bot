@@ -74,7 +74,7 @@ def notify(level: Level, title: str, message: str = "") -> bool:
             headers={"Content-Type": "application/json"},
         )
         return True
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.warning("notification failed (%s): %s", type(exc).__name__, exc)
         return False
 
@@ -96,7 +96,7 @@ def heartbeat(job: str, failed: bool = False) -> bool:
 
         requests.get(url, timeout=TIMEOUT)
         return True
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.warning("heartbeat failed (%s): %s", type(exc).__name__, exc)
         return False
 

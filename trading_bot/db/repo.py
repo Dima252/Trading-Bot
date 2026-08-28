@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import asdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from ..core.models import (
@@ -23,7 +23,7 @@ HALT_FLAG = "HALT"
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 class Repo:
@@ -39,7 +39,7 @@ class Repo:
     def close(self) -> None:
         self.conn.close()
 
-    def __enter__(self) -> "Repo":
+    def __enter__(self) -> Repo:
         return self
 
     def __exit__(self, *exc) -> None:

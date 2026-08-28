@@ -7,7 +7,7 @@ universe on the same day and poison the entire backtest.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -15,7 +15,7 @@ from trading_bot.data.yahoo import _parse, to_yahoo_symbol
 
 
 def stamp(d: date) -> int:
-    return int(datetime(d.year, d.month, d.day, tzinfo=timezone.utc).timestamp())
+    return int(datetime(d.year, d.month, d.day, tzinfo=UTC).timestamp())
 
 
 def payload(days, opens, highs, lows, closes, volumes, adjclose=None) -> dict:

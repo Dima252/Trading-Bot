@@ -36,7 +36,7 @@ class Indicators:
     low20_prior: list[float | None]
 
     @classmethod
-    def compute(cls, series: BarSeries) -> "Indicators":
+    def compute(cls, series: BarSeries) -> Indicators:
         closes = series.closes
         return cls(
             sma20=ta.sma(closes, 20),
@@ -59,7 +59,7 @@ def find_setups(
     ind: Indicators,
     i: int,
     sector: str = "UNKNOWN",
-    policy: "Policy | None" = None,
+    policy: Policy | None = None,
 ) -> list[Candidate]:
     """Every setup that fires on bar `i`. Nothing here may read past `i`."""
     from ..core.policy import Policy
@@ -79,7 +79,7 @@ def scan(
     day: date,
     sectors: dict[str, str] | None = None,
     indicator_cache: dict[str, Indicators] | None = None,
-    policy: "Policy | None" = None,
+    policy: Policy | None = None,
 ) -> list[Candidate]:
     """Run every setup across every symbol for one day.
 

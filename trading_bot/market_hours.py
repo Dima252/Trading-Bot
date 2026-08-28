@@ -28,6 +28,21 @@ def now_exchange() -> datetime:
     return datetime.now(EXCHANGE_TZ)
 
 
+def today_exchange(now: datetime | None = None) -> date:
+    """The date it is *at the exchange*, which is the only date jobs mean.
+
+    `date.today()` is the host's local date, and the host is not in New York.
+    From Israel (UTC+3) the local date rolls over at 17:00 ET -- so a job run at
+    00:30 local on Saturday would ask for Saturday's session while New York is
+    still on Friday afternoon, find it is not a trading day, and skip. The
+    session is lost to a clock, not to the market.
+
+    This is the same mistake as trusting a provisional bar: local convenience
+    standing in for the thing actually being measured.
+    """
+    return (now or now_exchange()).astimezone(EXCHANGE_TZ).date()
+
+
 def session_is_final(day: date, now: datetime | None = None) -> bool:
     """True once `day` has closed and its bars are settled values.
 

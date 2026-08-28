@@ -1,17 +1,18 @@
-"""The provisional-bar hazard.
+"""Clock correctness: which session, and whether it has settled.
 
-A daily bar appears the moment the opening bell rings, and its "close" is just
-the last trade. Nothing in the payload says so. Two independent defences have to
-hold, because either alone leaves a hole:
+Three failures live here, all the same shape -- a local convenience standing in
+for the thing actually being measured, and none of them announcing itself:
 
-* `fetch` must re-read the last cached session, so a bar stored mid-session can
-  still be repaired by a later run. Without this, coverage moves forward and the
-  bad bar is frozen in permanently.
-* `evening` must refuse to scan a session that has not closed. The staleness
-  guard cannot catch this -- a provisional bar is *present*, so it passes.
+* **Which day.** `date.today()` is the host's date, not New York's. From UTC+3
+  the local date rolls over at 17:00 ET, so a run after local midnight asks for
+  a session that has not happened.
+* **Whether it closed.** A daily bar appears at the opening bell with a "close"
+  that is only the last trade. `evening` must refuse to scan until the bell.
+* **Whether the stored copy is good.** `fetch` must re-read the last cached
+  session, or a bar written mid-session is frozen in permanently.
 
-This is not hypothetical: it happened on 2026-08-28, when a fetch run at 14:11 ET
-wrote 472 mid-session bars that no subsequent incremental fetch would have fixed.
+Not hypothetical: on 2026-08-28 a fetch at 14:11 ET wrote 472 mid-session bars
+that no later incremental fetch would have repaired.
 """
 
 from __future__ import annotations
@@ -23,7 +24,11 @@ import pytest
 
 from trading_bot.data.cache import OVERLAP_DAYS, BarCache
 from trading_bot.data.models import Bar, BarSeries
-from trading_bot.market_hours import EXCHANGE_TZ, session_is_final
+from trading_bot.market_hours import (
+    EXCHANGE_TZ,
+    session_is_final,
+    today_exchange,
+)
 
 DAY = date(2026, 8, 28)
 
@@ -63,6 +68,42 @@ def test_the_verdict_does_not_depend_on_the_hosts_timezone() -> None:
 def test_a_naive_clock_is_rejected_rather_than_guessed() -> None:
     with pytest.raises(ValueError):
         session_is_final(DAY, now=datetime(2026, 8, 28, 18, 0))
+
+
+# --- which date a job means ----------------------------------------------- #
+
+
+def test_the_trading_day_is_the_date_in_new_york() -> None:
+    """`date.today()` is the host's date, and the host is not in New York.
+
+    From UTC+3 the local date rolls over at 17:00 ET. A dry run started at 00:30
+    local on Saturday means Friday's session -- the market is still open in New
+    York when the operator's calendar has already moved on.
+    """
+    just_after_local_midnight = datetime(
+        2026, 8, 29, 0, 30, tzinfo=ZoneInfo("Asia/Jerusalem")
+    )
+    assert just_after_local_midnight.date() == date(2026, 8, 29)  # Saturday
+    assert today_exchange(just_after_local_midnight) == date(2026, 8, 28)  # Friday
+
+
+def test_a_saturday_run_would_otherwise_skip_a_live_session() -> None:
+    """Why it matters: the skipped date is not a trading day, so the job records
+    a clean 'not a trading session' and the operator loses the night."""
+    late = datetime(2026, 8, 29, 1, 15, tzinfo=ZoneInfo("Asia/Jerusalem"))
+
+    naive_local = late.date()
+    correct = today_exchange(late)
+
+    assert naive_local.weekday() == 5, "local clock says Saturday"
+    assert correct.weekday() == 4, "New York is still on Friday"
+    assert session_is_final(correct, now=late), "and that session has closed"
+
+
+def test_the_two_agree_during_the_evening_window() -> None:
+    """The intended 23:00 local slot is unambiguous -- both clocks say Friday."""
+    at_2305 = datetime(2026, 8, 28, 23, 5, tzinfo=ZoneInfo("Asia/Jerusalem"))
+    assert today_exchange(at_2305) == at_2305.date() == date(2026, 8, 28)
 
 
 # --- fetch re-reads the last cached session ------------------------------- #

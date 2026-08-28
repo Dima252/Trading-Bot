@@ -83,7 +83,7 @@ NARROW_SECTORS: dict[str, str] = dict(SECTORS)
 def _load_wide() -> dict[str, str] | None:
     """The frozen index snapshot, if it has been captured."""
     try:
-        with open(WIDE_UNIVERSE_FILE, "r", encoding="utf-8") as fh:
+        with open(WIDE_UNIVERSE_FILE, encoding="utf-8") as fh:
             return dict(json.load(fh)["sectors"])
     except (OSError, KeyError, ValueError):
         return None

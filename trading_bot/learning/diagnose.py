@@ -98,7 +98,7 @@ def spearman(pairs: list[tuple[float, float]]) -> float:
     xs = ranks([p[0] for p in pairs])
     ys = ranks([p[1] for p in pairs])
     mx, my = mean(xs), mean(ys)
-    num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    num = sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True))
     dx = sum((x - mx) ** 2 for x in xs) ** 0.5
     dy = sum((y - my) ** 2 for y in ys) ** 0.5
     return round(num / (dx * dy), 4) if dx and dy else 0.0

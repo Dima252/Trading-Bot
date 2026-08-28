@@ -138,7 +138,7 @@ def run_walkforward(
     cash_rate_symbol: str | None = None,
     progress: bool = True,
 ) -> WalkForward:
-    from .engine import Indicators, precompute_candidates
+    from .engine import precompute_candidates
 
     if progress:
         print(f"  computing indicators for {len(universe)} symbols...", flush=True)

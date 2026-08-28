@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 
 from tests.conftest import make_candidate, make_portfolio, make_position
-
 from trading_bot.core import (
     ActionKind,
     ConstraintLayer,

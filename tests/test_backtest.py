@@ -12,7 +12,6 @@ from datetime import date
 import pytest
 
 from tests.synthetic import random_universe
-
 from trading_bot.backtest.engine import BacktestConfig, run_backtest
 from trading_bot.backtest.fills import (
     FillModel,
@@ -213,7 +212,7 @@ def test_a_limit_that_gaps_in_below_its_own_stop_is_never_taken(market) -> None:
     far below it, manufacturing profit out of a gap DOWN -- and the R denominator
     goes negative, clamps to 1e-9, and blows every statistic to nine figures.
     """
-    from trading_bot.backtest.engine import Backtest, BacktestConfig
+    from trading_bot.backtest.engine import Backtest
     from trading_bot.core.models import Action, ActionKind, EntryType, SetupType
 
     universe, sectors = market
@@ -237,7 +236,7 @@ def test_a_limit_that_gaps_in_below_its_own_stop_is_never_taken(market) -> None:
 
 
 def test_r_is_denominated_by_planned_risk_not_the_fill(market) -> None:
-    from trading_bot.backtest.engine import Backtest, BacktestConfig
+    from trading_bot.backtest.engine import Backtest
     from trading_bot.core.models import Action, ActionKind, EntryType, SetupType
 
     universe, sectors = market

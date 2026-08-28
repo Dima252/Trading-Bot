@@ -13,7 +13,6 @@ from datetime import date, timedelta
 import pytest
 
 from tests.conftest import make_candidate
-
 from trading_bot.core.models import SetupType
 from trading_bot.core.policy import Policy
 from trading_bot.data.cache import BarCache

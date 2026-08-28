@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from tests.conftest import make_portfolio, make_position
-
 from trading_bot.core import Action, ActionKind, ConstraintLayer, Policy
 
 # Distinct sectors, so batch tests exercise the limit they mean to rather than

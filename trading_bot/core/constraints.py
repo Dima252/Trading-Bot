@@ -31,7 +31,7 @@ class _Projection:
     freed: list[str] = field(default_factory=list)
 
     @classmethod
-    def from_portfolio(cls, p: Portfolio) -> "_Projection":
+    def from_portfolio(cls, p: Portfolio) -> _Projection:
         return cls(
             cash=p.cash,
             equity=p.equity,

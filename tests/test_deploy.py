@@ -40,7 +40,7 @@ def parse() -> tuple[dict[str, str], list[tuple[int, int, str]]]:
 
 
 def test_the_template_exists_and_parses() -> None:
-    env, jobs = parse()
+    _env, jobs = parse()
     assert jobs, "no scheduled entries"
     assert all(0 <= h <= 23 and 0 <= m <= 59 for h, m, _ in jobs)
 

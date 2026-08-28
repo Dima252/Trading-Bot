@@ -117,13 +117,13 @@ class Policy:
     def fit_for(self, setup_type: str, regime: str) -> float:
         return self.regime_fit.get(setup_type, {}).get(regime, 0.5)
 
-    def with_changes(self, **kwargs: Any) -> "Policy":
+    def with_changes(self, **kwargs: Any) -> Policy:
         """Produce a new version. Never mutate a policy in place -- trades
         reference it by version."""
         return replace(self, **kwargs)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Policy":
+    def from_dict(cls, data: dict[str, Any]) -> Policy:
         known = {f for f in cls.__dataclass_fields__}
         unknown = set(data) - known
         if unknown:
@@ -131,8 +131,8 @@ class Policy:
         return cls(**data)
 
     @classmethod
-    def from_yaml(cls, path: str) -> "Policy":
+    def from_yaml(cls, path: str) -> Policy:
         import yaml  # optional dependency; only needed to load from disk
 
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             return cls.from_dict(yaml.safe_load(fh) or {})

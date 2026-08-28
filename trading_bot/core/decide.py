@@ -132,7 +132,9 @@ def decide(
         """
         if sizing.qty <= 0 or (heat + risk) > heat_cap:
             return False
-        if sizing.binding_constraint == "cash_reserve" and risk < min_risk:
+        # Left uncollapsed on purpose: each rejection is a distinct reason,
+        # and merging them into one boolean loses which one fired.
+        if sizing.binding_constraint == "cash_reserve" and risk < min_risk:  # noqa: SIM103
             return False
         return True
 

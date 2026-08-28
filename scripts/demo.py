@@ -14,7 +14,7 @@ from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from trading_bot.core import (  # noqa: E402
+from trading_bot.core import (
     ActionKind,
     Candidate,
     ConstraintLayer,

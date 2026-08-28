@@ -15,7 +15,6 @@ from tests.synthetic import (
     series_from_closes,
     uptrend,
 )
-
 from trading_bot.core.models import SetupType
 from trading_bot.data.models import BarSeries
 from trading_bot.signals.engine import Indicators, find_setups

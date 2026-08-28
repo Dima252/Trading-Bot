@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from .cache import OVERLAP_DAYS, BarCache
 from .models import Bar, BarSeries
@@ -53,7 +53,7 @@ class YahooData:
         for i, symbol in enumerate(symbols):
             try:
                 series = self.fetch_one(symbol, start, end)
-            except Exception as exc:  # noqa: BLE001 -- one bad symbol must not
+            except Exception as exc:
                 log.warning("%s: fetch failed (%s)", symbol, exc)  # kill the run
                 continue
             if series is not None and len(series):
@@ -69,11 +69,11 @@ class YahooData:
 
         params = {
             "period1": int(
-                datetime.combine(start, datetime.min.time(), timezone.utc).timestamp()
+                datetime.combine(start, datetime.min.time(), UTC).timestamp()
             ),
             "period2": int(
                 datetime.combine(
-                    end + timedelta(days=1), datetime.min.time(), timezone.utc
+                    end + timedelta(days=1), datetime.min.time(), UTC
                 ).timestamp()
             ),
             "interval": "1d",
@@ -94,7 +94,7 @@ class YahooData:
                     continue
                 response.raise_for_status()
                 return _parse(symbol, response.json())
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 last_error = exc
                 time.sleep(1.5 * (attempt + 1))
 
@@ -123,9 +123,9 @@ def _parse(symbol: str, payload: dict) -> BarSeries | None:
     bars: list[Bar] = []
     seen: set[date] = set()
     for i, stamp in enumerate(stamps):
-        o, h, l, c = _at(opens, i), _at(highs, i), _at(lows, i), _at(closes, i)
+        o, h, lo, c = _at(opens, i), _at(highs, i), _at(lows, i), _at(closes, i)
         v = _at(volumes, i)
-        if None in (o, h, l, c) or c <= 0:
+        if None in (o, h, lo, c) or c <= 0:
             continue  # a halted or missing session, not a zero-priced one
 
         # back-adjust for splits and dividends
@@ -135,7 +135,7 @@ def _parse(symbol: str, payload: dict) -> BarSeries | None:
             if adj is not None and c > 0:
                 factor = adj / c
 
-        day = datetime.fromtimestamp(stamp, timezone.utc).date()
+        day = datetime.fromtimestamp(stamp, UTC).date()
         if day in seen:
             continue
         seen.add(day)
@@ -145,7 +145,7 @@ def _parse(symbol: str, payload: dict) -> BarSeries | None:
                 day=day,
                 open=round(o * factor, 4),
                 high=round(h * factor, 4),
-                low=round(l * factor, 4),
+                low=round(lo * factor, 4),
                 close=round(c * factor, 4),
                 # inverse-scaled so close * volume is unchanged by adjustment
                 volume=round((v or 0.0) / factor if factor else 0.0, 2),
@@ -190,7 +190,7 @@ def refresh_cache(
 
         try:
             series = client.fetch_one(symbol, from_day, end)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             print(f"  [{i}/{len(symbols)}] {symbol:<6} FAILED: {exc}")
             continue
 

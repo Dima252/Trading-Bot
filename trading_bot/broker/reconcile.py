@@ -16,13 +16,13 @@ the rest of the session is wrong.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
-
-_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+from datetime import UTC, date, datetime
 
 from ..core.models import Portfolio, Position, SetupType
 from ..db.repo import Repo, position_from_annotation
 from .base import Broker, BrokerOrder, OrderStatus
+
+_EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 @dataclass

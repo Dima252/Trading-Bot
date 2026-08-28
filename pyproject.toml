@@ -7,8 +7,30 @@ dependencies = []
 
 [project.optional-dependencies]
 config = ["pyyaml>=6.0"]
-dev = ["pytest>=7.0"]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff>=0.6"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+# Beyond the defaults: import hygiene, modern syntax, bug patterns, and -- the
+# reason this file exists -- the datetime rules. Three separate live defects came
+# from a local clock standing in for the exchange's, so DTZ is not optional here.
+select = ["E", "F", "I", "UP", "B", "SIM", "DTZ", "RUF"]
+ignore = [
+    "E501",    # line length is formatting, and the comments here are prose
+    "SIM108",  # ternaries are not always clearer than an if/else
+    "B008",    # argparse defaults are evaluated once on purpose
+    "UP042",   # (str, Enum) values are persisted to SQLite and to policy.yaml;
+               # switching to StrEnum changes serialisation, not just syntax
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests construct fixed local datetimes deliberately; that is the thing under
+# test, not an oversight.
+"tests/*" = ["DTZ001", "DTZ011", "RUF005", "RUF007", "B007"]

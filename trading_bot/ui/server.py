@@ -23,13 +23,13 @@ import html
 import json
 import logging
 import secrets
-from datetime import date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from ..core.policy import Policy
 from ..data.cache import BarCache
 from ..db.repo import Repo
+from ..market_hours import today_exchange
 from . import dashboard
 
 log = logging.getLogger("trading_bot.server")
@@ -68,7 +68,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     # ------------------------------------------------------------------ #
 
-    def do_GET(self) -> None:  # noqa: N802 -- BaseHTTPRequestHandler API
+    def do_GET(self) -> None:
         path = urlparse(self.path).path
         if path in ("/", "/index.html"):
             self._send_html(self._render())
@@ -77,7 +77,7 @@ class _Handler(BaseHTTPRequestHandler):
         else:
             self._send_html("<h1>404</h1>", status=404)
 
-    def do_POST(self) -> None:  # noqa: N802
+    def do_POST(self) -> None:
         path = urlparse(self.path).path
         if path not in ("/halt", "/resume"):
             self._send_html("<h1>404</h1>", status=404)
@@ -114,11 +114,11 @@ class _Handler(BaseHTTPRequestHandler):
         repo = self._repo()
         try:
             policy = Policy.from_yaml(self.policy_path)
-        except Exception:  # noqa: BLE001
+        except Exception:
             policy = Policy()
 
         page = dashboard.render(
-            repo, BarCache(self.bars_path), policy, as_of=date.today()
+            repo, BarCache(self.bars_path), policy, as_of=today_exchange()
         )
         halted = repo.is_halted()
         controls = CONTROLS.format(

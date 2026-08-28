@@ -57,7 +57,7 @@ def classify(
 def breadth_of(
     universe: dict[str, BarSeries],
     day: date,
-    indicators: dict[str, "Indicators"] | None = None,
+    indicators: dict[str, Indicators] | None = None,
 ) -> float:
     """Fraction of the universe trading above its own 50-day average.
 

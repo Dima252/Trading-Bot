@@ -20,12 +20,13 @@ and it should be the first thing visible.
 from __future__ import annotations
 
 import html
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from ..core.policy import Policy
 from ..data.cache import BarCache
 from ..db.repo import Repo
+from ..market_hours import today_exchange
 
 JOBS = ("evening", "premarket", "open", "close")
 STALE_DAYS = 4
@@ -435,7 +436,7 @@ def render(
     benchmark: str = "SPY",
 ) -> str:
     policy = policy or Policy()
-    today = as_of or date.today()
+    today = as_of or today_exchange()
 
     history = repo.equity_history()
     equity = [(date.fromisoformat(r["day"]), r["equity"]) for r in history]
@@ -446,7 +447,7 @@ def render(
         days = {d for d, _ in equity}
         bench = [(b.day, b.close) for b in series.bars if b.day in days]
 
-    generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    generated = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">

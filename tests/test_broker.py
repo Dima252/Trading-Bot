@@ -6,7 +6,7 @@ from datetime import date
 
 import pytest
 
-from trading_bot.broker.base import Broker, OrderStatus
+from trading_bot.broker.base import Broker, BrokerError, OrderStatus
 from trading_bot.broker.orders import (
     bracket_from_action,
     client_order_id,
@@ -19,8 +19,8 @@ from trading_bot.data.models import Bar
 DAY = date(2026, 3, 2)
 
 
-def bar(o, h, l, c, day=DAY) -> Bar:
-    return Bar(day, o, h, l, c, 1_000_000.0)
+def bar(o, h, lo, c, day=DAY) -> Bar:
+    return Bar(day, o, h, lo, c, 1_000_000.0)
 
 
 # --- order identity ------------------------------------------------------ #
@@ -92,7 +92,7 @@ def test_paper_broker_satisfies_the_protocol() -> None:
 def test_duplicate_client_order_id_is_refused() -> None:
     broker = PaperBroker(100_000)
     broker.submit_bracket("AAA", 10, 100.0, 90.0, 130.0, "cid-1")
-    with pytest.raises(Exception):
+    with pytest.raises(BrokerError, match="duplicate"):
         broker.submit_bracket("AAA", 10, 100.0, 90.0, 130.0, "cid-1")
 
 

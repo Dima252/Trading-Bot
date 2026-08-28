@@ -8,7 +8,7 @@ test can watch a bracket actually take a position out.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from itertools import count
 
 from ..data.models import Bar
@@ -91,7 +91,7 @@ class PaperBroker:
             status=OrderStatus.SUBMITTED,
             order_type="limit",
             limit_price=limit,
-            submitted_at=datetime.now(timezone.utc),
+            submitted_at=datetime.now(UTC),
         )
         self._orders[client_order_id] = order
         self._brackets[ticker] = {
@@ -208,7 +208,7 @@ class PaperBroker:
             order_type=reason,
             filled_qty=pos.qty,
             filled_avg_price=price,
-            submitted_at=datetime.now(timezone.utc),
+            submitted_at=datetime.now(UTC),
         )
         self._orders[order.client_order_id] = order
         return order

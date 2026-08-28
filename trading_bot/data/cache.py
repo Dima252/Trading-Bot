@@ -8,7 +8,7 @@ identical data or every comparison between them is meaningless.
 from __future__ import annotations
 
 import sqlite3
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from .models import Bar, BarSeries
@@ -54,7 +54,7 @@ class BarCache:
     def close(self) -> None:
         self.conn.close()
 
-    def __enter__(self) -> "BarCache":
+    def __enter__(self) -> BarCache:
         return self
 
     def __exit__(self, *exc) -> None:
@@ -86,7 +86,7 @@ class BarCache:
                 series.symbol,
                 series.bars[0].day.isoformat(),
                 series.bars[-1].day.isoformat(),
-                datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                datetime.now(UTC).isoformat(timespec="seconds"),
             ),
         )
         self.conn.commit()

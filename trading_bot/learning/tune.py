@@ -15,7 +15,7 @@ promotes a proposal by activating a new policy version.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from ..backtest.metrics import Report
 from ..core.policy import Policy
@@ -132,7 +132,7 @@ def _changed_recently(repo: Repo) -> bool:
     if not rows:
         return False
     last = datetime.fromisoformat(rows["proposed_at"])
-    return (datetime.now(timezone.utc) - last) < timedelta(
+    return (datetime.now(UTC) - last) < timedelta(
         days=MIN_DAYS_BETWEEN_CHANGES
     )
 

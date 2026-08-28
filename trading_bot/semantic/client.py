@@ -115,7 +115,7 @@ class StaticEarningsCalendar:
         self.path = path
         self.dates: dict[str, date] = {}
         if os.path.exists(path):
-            with open(path, "r", encoding="utf-8") as fh:
+            with open(path, encoding="utf-8") as fh:
                 raw = json.load(fh)
             self.dates = {k: date.fromisoformat(v) for k, v in raw.items()}
         else:
@@ -168,7 +168,7 @@ class ClaudeSemanticEngine:
                 continue  # no news is not a veto
             try:
                 out[ticker] = self._assess_one(ticker, items)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 # A failed call must not silently approve. Log and leave the
                 # ticker unflagged -- the technical filters still apply, and the
                 # run log records that judgment was unavailable.
@@ -227,7 +227,7 @@ class ClaudeSemanticEngine:
                     exclude_contentless=True,
                 )
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("news fetch failed: %s", exc)
             return {}
 

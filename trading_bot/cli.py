@@ -13,9 +13,11 @@ import pathlib
 import sys
 from datetime import date, timedelta
 
+from .core.models import Regime
 from .core.policy import Policy
 from .data.cache import BarCache
 from .db.repo import Repo
+from .market_hours import today_exchange
 
 DEFAULT_POLICY = "config/policy.yaml"
 DEFAULT_BARS = "data/bars.db"
@@ -83,7 +85,6 @@ def cmd_fetch(args) -> int:
     want the same feed live trading will see.
     """
     from .data.universe import all_symbols
-
     from .market_hours import SESSION_CLOSE, now_exchange, session_is_final
 
     cache = BarCache(args.bars)
@@ -377,7 +378,7 @@ def cmd_holdout(args) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     header = "\n".join(
         [
-            f"HOLDOUT SPENT {date.today()}",
+            f"HOLDOUT SPENT {today_exchange()}",
             f"period {holdout.span}",
             f"variants {', '.join(variants)}",
             "",
@@ -403,7 +404,7 @@ def cmd_job(args) -> int:
                 from .semantic.client import ClaudeSemanticEngine
 
                 engine = ClaudeSemanticEngine()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 print(f"semantic engine unavailable ({exc}); running calendar-only")
         result = premarket.run(ctx, engine)
     elif args.command == "open":
@@ -422,7 +423,7 @@ def cmd_job(args) -> int:
     return 0 if result.status in ("ok", "skipped") else 1
 
 
-def _regime_on_file(ctx) -> "Regime | None":
+def _regime_on_file(ctx) -> Regime | None:
     """The regime the last evening scan measured, or None if there isn't one.
 
     The intraday jobs cannot classify the regime themselves -- at 10:00 today's
@@ -430,8 +431,6 @@ def _regime_on_file(ctx) -> "Regime | None":
     regime. So they inherit the last one derived from settled data, and decline
     to open when there is none.
     """
-    from .core.models import Regime
-
     recorded = ctx.repo.last_regime(ctx.day)
     if recorded is None:
         return None
@@ -535,8 +534,15 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--policy", default=DEFAULT_POLICY)
     common.add_argument("--bars", default=DEFAULT_BARS)
     common.add_argument("--state", default=DEFAULT_STATE)
+    # today AT THE EXCHANGE, not on this host. From UTC+3 the local date rolls
+    # over at 17:00 ET, so a run started after midnight local would ask for
+    # tomorrow's session, find it is not a trading day, and skip -- losing the
+    # session to a clock rather than to the market.
     common.add_argument(
-        "--day", type=date.fromisoformat, default=date.today(), help="YYYY-MM-DD"
+        "--day",
+        type=date.fromisoformat,
+        default=today_exchange(),
+        help="YYYY-MM-DD (defaults to today in New York)",
     )
     common.add_argument("--live", action="store_true", help="use live, not paper")
     common.add_argument("--dry-run", action="store_true", help="decide but do not send")

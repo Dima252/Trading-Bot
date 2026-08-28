@@ -6,12 +6,12 @@ aggregate but only in one fold must be called out as luck, not promoted.
 
 from __future__ import annotations
 
+import itertools
 from datetime import date, timedelta
 
 import pytest
 
 from tests.synthetic import random_universe
-
 from trading_bot.backtest.metrics import BenchmarkStats, CurveStats, Stats
 from trading_bot.backtest.walkforward import (
     Fold,
@@ -45,7 +45,7 @@ def fold_result(variant: str, label: str, expectancy: float, trades: int = 60):
 def test_folds_are_sequential_and_do_not_overlap() -> None:
     folds, holdout = make_folds(days_from(date(2020, 1, 1), 2000), n_folds=4)
     assert len(folds) == 4
-    for earlier, later in zip(folds, folds[1:]):
+    for earlier, later in itertools.pairwise(folds):
         assert earlier.end < later.start
     assert holdout is not None
     assert holdout.start > folds[-1].end
@@ -159,8 +159,8 @@ def test_walkforward_runs_over_a_synthetic_universe() -> None:
 
 def test_the_shallow_flag_actually_changes_the_scores() -> None:
     """A variant that silently does nothing would look like a null result."""
-    from trading_bot.signals.engine import Indicators, find_setups
     from tests.synthetic import pullback_series
+    from trading_bot.signals.engine import Indicators, find_setups
 
     series = pullback_series()
     ind = Indicators.compute(series)

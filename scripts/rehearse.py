@@ -17,19 +17,18 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from dataclasses import replace
 from datetime import date
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from trading_bot.broker.paper import PaperBroker  # noqa: E402
-from trading_bot.core.policy import Policy  # noqa: E402
-from trading_bot.data.cache import BarCache  # noqa: E402
-from trading_bot.data.universe import BENCHMARK, SECTORS  # noqa: E402
-from trading_bot.db.repo import Repo  # noqa: E402
-from trading_bot.jobs import close_job, evening, open_job, premarket  # noqa: E402
-from trading_bot.jobs.base import AgentContext  # noqa: E402
-from trading_bot.semantic.client import NullSemanticEngine  # noqa: E402
+from trading_bot.broker.paper import PaperBroker
+from trading_bot.core.policy import Policy
+from trading_bot.data.cache import BarCache
+from trading_bot.data.universe import BENCHMARK, SECTORS
+from trading_bot.db.repo import Repo
+from trading_bot.jobs import close_job, evening, open_job, premarket
+from trading_bot.jobs.base import AgentContext
+from trading_bot.semantic.client import NullSemanticEngine
 
 # The last stretch of fold F4. Never crosses into the holdout.
 DEFAULT_END = date(2025, 6, 10)

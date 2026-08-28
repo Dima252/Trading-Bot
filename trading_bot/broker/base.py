@@ -76,7 +76,7 @@ class BrokerOrder:
     filled_qty: int = 0
     filled_avg_price: float | None = None
     submitted_at: datetime | None = None
-    legs: list["BrokerOrder"] = field(default_factory=list)
+    legs: list[BrokerOrder] = field(default_factory=list)
 
     @property
     def is_stop_leg(self) -> bool:

@@ -83,7 +83,7 @@ def _with_retry(fn, attempts: int = 3, delay: float = 4.0):
     for attempt in range(attempts):
         try:
             return fn()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             last = exc
             if attempt < attempts - 1:
                 log.warning("retrying after %s: %s", type(exc).__name__, exc)
@@ -121,7 +121,7 @@ def run_job(name: str, ctx: AgentContext, body) -> JobResult:
         ctx.repo.finish_run(run_id, result.status, result.summary)
         _alert_on_notable(ctx, result, recon)
         heartbeat(name)
-    except Exception as exc:  # noqa: BLE001 -- a job must never die silently
+    except Exception as exc:
         result.status = "error"
         result.note(f"FAILED: {exc}")
         ctx.repo.finish_run(run_id, "error", traceback.format_exc())

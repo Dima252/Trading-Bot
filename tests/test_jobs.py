@@ -13,7 +13,6 @@ from datetime import date, timedelta
 import pytest
 
 from tests.synthetic import random_universe
-
 from trading_bot.broker.paper import PaperBroker
 from trading_bot.core.models import (
     ActionKind,

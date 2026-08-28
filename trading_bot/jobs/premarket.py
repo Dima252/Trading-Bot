@@ -12,7 +12,7 @@ create one, and it never touches sizing.
 from __future__ import annotations
 
 from ..core.models import EventFlags
-from ..semantic.client import SemanticEngine, NullSemanticEngine
+from ..semantic.client import NullSemanticEngine, SemanticEngine
 from .base import AgentContext, JobResult, run_job
 
 NAME = "premarket"
