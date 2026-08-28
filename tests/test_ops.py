@@ -210,3 +210,84 @@ def test_the_server_has_no_path_to_an_order() -> None:
     source = inspect.getsource(S)
     for forbidden in ("submit_bracket", "close_position", "cancel_order", "decide("):
         assert forbidden not in source
+
+
+# --- a disconnected machine ------------------------------------------------ #
+
+
+class OfflineBroker:
+    """Every call raises, the way a broker adapter does with no network."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def _die(self, *a, **k):
+        self.calls += 1
+        raise ConnectionError("getaddrinfo failed")
+
+    is_trading_day = _die
+    account = _die
+    positions = _die
+    orders = _die
+
+
+def test_a_job_with_no_network_fails_cleanly(tmp_path, monkeypatch):
+    """Offline must produce a logged, notified failure -- not a traceback.
+
+    The calendar check needs the network, so with it outside the try block a
+    disconnected machine crashed before opening a run: no record, no alert, no
+    failed heartbeat. Exactly the three things that would tell you it happened.
+    """
+    from datetime import date as _date
+
+    from trading_bot.core.policy import Policy
+    from trading_bot.data.cache import BarCache
+    from trading_bot.jobs import evening
+    from trading_bot.jobs.base import AgentContext
+
+    monkeypatch.setattr("trading_bot.jobs.base._with_retry", lambda fn, **k: fn())
+
+    repo = Repo(str(tmp_path / "s.db"))
+    ctx = AgentContext(
+        repo=repo,
+        broker=OfflineBroker(),
+        cache=BarCache(tmp_path / "b.db"),
+        policy=Policy(),
+        sectors={},
+        day=_date(2026, 8, 27),
+    )
+
+    result = evening.run(ctx)  # must not raise
+
+    assert result.status == "error"
+    assert any("FAILED" in n for n in result.notes)
+
+    row = repo.last_run("evening")
+    assert row is not None and row["status"] == "error"
+    assert "ConnectionError" in (row["detail"] or "")
+
+
+def test_a_transient_blip_is_retried(monkeypatch):
+    """One flaky call must not cost a whole session -- these run once a day."""
+    from trading_bot.jobs.base import _with_retry
+
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+    attempts = {"n": 0}
+
+    def flaky():
+        attempts["n"] += 1
+        if attempts["n"] < 3:
+            raise ConnectionError("blip")
+        return True
+
+    assert _with_retry(flaky, attempts=3, delay=0) is True
+    assert attempts["n"] == 3
+
+
+def test_retry_gives_up_and_propagates(monkeypatch):
+    from trading_bot.jobs.base import _with_retry
+
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+    with pytest.raises(ConnectionError):
+        _with_retry(lambda: (_ for _ in ()).throw(ConnectionError("down")),
+                    attempts=2, delay=0)

@@ -70,17 +70,45 @@ class JobResult:
         return ", ".join(parts)
 
 
+def _with_retry(fn, attempts: int = 3, delay: float = 4.0):
+    """Retry a read through a transient network blip.
+
+    These jobs run once a day. Losing a whole session to a two-second DNS
+    hiccup is a poor trade against a few seconds of waiting -- but if the
+    connection is genuinely down, this fails fast enough to still be logged.
+    """
+    import time
+
+    last: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            return fn()
+        except Exception as exc:  # noqa: BLE001
+            last = exc
+            if attempt < attempts - 1:
+                log.warning("retrying after %s: %s", type(exc).__name__, exc)
+                time.sleep(delay * (attempt + 1))
+    raise last  # type: ignore[misc]
+
+
 def run_job(name: str, ctx: AgentContext, body) -> JobResult:
     """Wrap a job body with calendar gating, run logging and error capture."""
     result = JobResult(job=name, day=ctx.day)
 
-    if not ctx.broker.is_trading_day(ctx.day):
-        result.status = "skipped"
-        result.note(f"{ctx.day} is not a trading session")
-        return result
-
+    # The run is opened BEFORE the calendar check, and the check lives inside
+    # the try. Reaching the calendar needs the network, so with the check
+    # outside a disconnected machine produced an uncaught traceback: no run
+    # record, no alert, no failed heartbeat -- the three things that would tell
+    # you it happened.
     run_id = ctx.repo.start_run(name, ctx.day)
     try:
+        if not _with_retry(lambda: ctx.broker.is_trading_day(ctx.day)):
+            result.status = "skipped"
+            result.note(f"{ctx.day} is not a trading session")
+            ctx.repo.finish_run(run_id, "skipped", "not a trading session")
+            heartbeat(name)
+            return result
+
         recon = reconcile(ctx.broker, ctx.repo, ctx.day)
         result.reconciliation = recon
         for warning in recon.warnings:

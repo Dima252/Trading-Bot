@@ -115,7 +115,10 @@ def test_evening_skips_a_non_session_day(ctx) -> None:
     assert saturday.weekday() == 5
     result = evening.run(replace(ctx, day=saturday))
     assert result.status == "skipped"
-    assert ctx.repo.last_run("evening") is None
+    # A skip is recorded rather than silent: otherwise the dashboard's staleness
+    # indicator false-alarms across every long holiday weekend.
+    row = ctx.repo.last_run("evening")
+    assert row is not None and row["status"] == "skipped"
 
 
 # --- premarket ------------------------------------------------------------ #
