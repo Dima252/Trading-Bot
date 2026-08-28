@@ -6,3 +6,6 @@ __pycache__/
 .env
 .venv/
 venv/
+
+# generated scratch -- regenerate with `dashboard`, `walkforward`, etc.
+out/
