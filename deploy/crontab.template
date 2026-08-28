@@ -1,0 +1,37 @@
+# Trading bot schedule.  Install with:  crontab deploy/crontab.template
+#
+# CRON_TZ is the whole reason this runs on Linux rather than Windows Task
+# Scheduler: the schedule is in New York time, and cron shifts it automatically
+# at each DST changeover. A fixed local-time scheduler drifts by an hour twice a
+# year, and because US and EU switch on different dates there are two weeks
+# annually where it is simply wrong.
+CRON_TZ=America/New_York
+SHELL=/bin/bash
+BOT=/opt/trading-bot
+
+# Weekday-only here is a coarse filter. The real gate is the market-calendar
+# check inside every job, which also handles holidays and early closes.
+
+# 09:00  event gate on last night's candidates
+0  9 * * 1-5  cd $BOT && ./venv/bin/python -m trading_bot premarket >> logs/bot.log 2>&1
+
+# 10:00  defensive exits + resting entries, after the opening range settles
+0 10 * * 1-5  cd $BOT && ./venv/bin/python -m trading_bot open      >> logs/bot.log 2>&1
+
+# 15:30  close-confirmed breakouts, cancel unfilled day orders
+30 15 * * 1-5 cd $BOT && ./venv/bin/python -m trading_bot close     >> logs/bot.log 2>&1
+
+# 18:00  refresh bars.  MUST run before `evening` -- the scanner matches session
+#        dates exactly, so a stale cache makes every symbol invisible. The
+#        evening job errors loudly rather than reporting a quiet market, but
+#        that still costs you the session.
+0 18 * * 1-5  cd $BOT && ./venv/bin/python -m trading_bot fetch     >> logs/bot.log 2>&1
+
+# 18:15  the main think: reconcile, scan, write tomorrow's watchlist
+15 18 * * 1-5 cd $BOT && ./venv/bin/python -m trading_bot evening   >> logs/bot.log 2>&1
+
+# 18:30  regenerate the static dashboard
+30 18 * * 1-5 cd $BOT && ./venv/bin/python -m trading_bot dashboard --out out/dashboard.html >> logs/bot.log 2>&1
+
+# Weekly log rotation, so six months of output does not fill the disk.
+0 20 * * 0    cd $BOT && mv logs/bot.log logs/bot.$(date +\%Y\%m\%d).log && find logs -name 'bot.*.log' -mtime +60 -delete

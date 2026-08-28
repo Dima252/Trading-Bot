@@ -1,8 +1,8 @@
 # Where we stopped, and what happens next
 
-Session ended 2026-08-28. Everything below reflects the state of the repo at that
-point. Architecture reference is [README.md](README.md); this file is the
-working log and forward plan.
+Last updated 2026-08-28. Architecture reference is [README.md](README.md);
+deployment is [deploy/README.md](deploy/README.md). This file is the working log
+and forward plan.
 
 ---
 
@@ -10,26 +10,30 @@ working log and forward plan.
 
 | | |
 |---|---|
-| Implementation | ~7,400 lines across `trading_bot/` |
-| Tests | **212 passing**, ~12s, no network, no credentials |
-| Market data | 162,890 real daily bars, 91 symbols, 2019-07 → 2026-08, in `data/bars.db` |
-| Phases complete | 0, 2, 3, 4, 5, 6 (see README §14) |
-| Git | Everything **staged but NOT committed** — first commit still to be made |
+| Implementation | ~8,600 lines, 57 modules |
+| Tests | **269 passing**, ~20s, no network, no credentials |
+| Market data | 887,235 daily bars, 505 symbols, 2019-07 → 2026-08 |
+| Shipping config | `config/policy.yaml` **v2-holdout** — frozen, out-of-sample tested |
+| Broker | Alpaca paper connected and verified ($100k account) |
+| Research | **Closed.** The holdout is spent; historical data is exhausted |
+| Next | Two weeks of `--dry-run`, then six months unchanged (§4) |
 
 ### What runs today
 
 ```bash
-python -m pytest -q                    # 212 tests
+python -m pytest -q                    # 269 tests
 python scripts/demo.py                 # decision core on a hand-built book
 python -m trading_bot fetch            # real bars, no API key needed (Yahoo)
 python -m trading_bot backtest         # full report vs SPY
 python -m trading_bot diagnose         # is the ranking predictive?
 python -m trading_bot walkforward      # does a change hold across periods?
+python -m trading_bot dashboard        # one self-contained HTML file
+python -m trading_bot serve            # live view + kill switch
+python -m trading_bot evening --dry-run   # decide, log, send nothing
 ```
 
-The four cron jobs (`evening`, `premarket`, `open`, `close`) are written, tested
-end to end against an in-memory broker, and have **never been run against a real
-account** because no credentials exist yet.
+The four jobs have run against the real paper account. They have **never placed
+an order** — every run so far has been `--dry-run` or paper-broker rehearsal.
 
 ---
 
@@ -133,26 +137,22 @@ close-confirmation path could never actually open a position. Fixed; guarded by
 
 ---
 
-## 3. The open decision
+## 3. The decision that was open, and how it resolved
 
-**Nothing has touched the holdout period (2025-06-11 → 2026-08-27).** It can be
-spent exactly once. The rehearsal script refuses to run past 2025-06-10 for this
-reason.
+Kept because the reasoning matters more than the outcome.
 
-The regime gate has now been tested (§2b) and `all_three` is the candidate. The
-question is no longer *which* variant — it is whether spending the holdout is
-worth it yet.
+**The question was:** spend the holdout on `all_three`, which cleared 4/4 folds?
+I recommended waiting, on the grounds that clearing the §5 bar in only 2 of 4
+periods made the expected holdout result close to a coin flip.
 
-**Recommendation: do not spend it on `all_three` as it stands.** In-fold it
-clears the §5 bar in 2 of 4 periods, so the expected holdout result is close to
-a coin flip, and that is a poor use of the only clean test available.
+**What actually happened:** the universe turned out to be the binding
+constraint (§5c). On 503 names instead of 85, `all_three` cleared the bar in
+**4/4** folds at 13.64% CAGR. It looked finished. Then the holdout was spent —
+and it went **negative**.
 
-The prior question is strategic, not technical: **is a defensive profile what
-you want?** The evidence is now clear and consistent that this is what the
-system produces. If the answer is yes, spend the holdout to confirm it. If the
-answer is "it must beat buy-and-hold", this approach will not, and the honest
-move is a different game — a less efficient universe, a longer holding period,
-or a different edge type — rather than more tuning of this one.
+**The lesson, in one line:** four-for-four across independent periods was not
+enough. Fold consistency is necessary and not sufficient, which is exactly why
+the holdout existed and exactly why it can only be spent once.
 
 ---
 
@@ -173,6 +173,14 @@ What is left is operational.
 C2 can start today. The only daily requirement is that `fetch` runs **before**
 `evening`, or the evening job errors on stale data (deliberately — see §2c).
 
+### Deployment is ready
+
+`deploy/` holds a validated crontab template, an idempotent `setup.sh` that
+verifies each step and refuses to proceed on a failing test suite, and a README
+covering the local-vs-host tradeoff. `tests/test_deploy.py` guards the one
+invariant that is not obvious from reading the crontab: **`fetch` must precede
+`evening`**, or the scanner meets a stale cache and the session is lost.
+
 ### Built but not yet configured
 
 | Item | Why it matters | What it needs |
@@ -185,7 +193,6 @@ C2 can start today. The only daily requirement is that `fetch` runs **before**
 
 | Item | Why it is not done |
 |---|---|
-| `deploy/` folder (crontab, systemd unit, setup script) | Straightforward; worth doing when you commit to a host |
 | Earnings calendar | **Before real money, not before paper.** The backtest ran without it, so wiring it now would make the trial test a system that was never validated (§5d) |
 | `ADD` to a position | Three-step broker transaction (cancel OCO → add → re-place) with rollback. `decide()` never emits it; the constraint layer already validates it |
 | Fixing `regime_fit` | Known inert and unvalidated. Changing it changes the tested system — revisit only with live data (§5d) |
