@@ -425,6 +425,22 @@ class Repo:
         )
         self.conn.commit()
 
+    def last_regime(self, on_or_before: date) -> str | None:
+        """The most recent regime the evening scan actually measured.
+
+        The intraday jobs cannot compute this themselves: at 10:00 today's bar
+        does not exist yet, and the regime is a property of settled closes. So
+        they read the last one classified from real data rather than assuming.
+        Returns None when no scan has ever recorded one -- which callers must
+        treat as "do not open", not as "probably fine".
+        """
+        row = self.conn.execute(
+            "SELECT regime FROM equity_history WHERE day <= ? AND regime IS NOT NULL "
+            "ORDER BY day DESC LIMIT 1",
+            (on_or_before.isoformat(),),
+        ).fetchone()
+        return row[0] if row else None
+
     def equity_asof(self, day: date) -> float | None:
         row = self.conn.execute(
             "SELECT equity FROM equity_history WHERE day <= ? ORDER BY day DESC LIMIT 1",

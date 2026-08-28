@@ -25,7 +25,16 @@ MAX_WATCHLIST_AGE_DAYS = 4
 ALLOWED = {ActionKind.CLOSE, ActionKind.ADJUST_STOP, ActionKind.CANCEL, ActionKind.OPEN}
 
 
-def run(ctx: AgentContext, regime: Regime = Regime.TREND) -> JobResult:
+def run(ctx: AgentContext, regime: Regime | None = None) -> JobResult:
+    """`regime` has no default on purpose.
+
+    It used to default to TREND -- the one regime the policy permits trading in
+    -- so a caller that forgot to pass one silently got the most permissive
+    answer. The evening scan of 2026-08-27 measured `chop` and correctly opened
+    nothing, yet this job would have entered all 113 of its candidates the next
+    morning, because it was told the market was trending. Passing None now means
+    "unknown", and unknown declines.
+    """
     return run_job(NAME, ctx, lambda c, r, rec, rid: _body(c, r, rec, rid, regime))
 
 
@@ -34,15 +43,29 @@ def _body(
     result: JobResult,
     recon,
     run_id: int,
-    regime: Regime,
+    regime: Regime | None,
 ) -> None:
     portfolio = recon.portfolio
-    context = MarketContext(as_of=ctx.day, regime=regime)
 
     candidate_day = ctx.repo.latest_candidate_day(ctx.day)
     candidates = (
         ctx.repo.pending_candidates(candidate_day) if candidate_day else []
     )
+
+    # Fail closed. Clearing the watchlist -- not the regime value below -- is
+    # what actually prevents an entry, since `decide()` cannot open what it was
+    # never shown. Defensive work continues regardless: an unknown regime must
+    # never mean sitting on a broken position.
+    if regime is None:
+        if candidates:
+            result.note(
+                f"NO REGIME on file for {ctx.day} -- declining "
+                f"{len(candidates)} entries. Has the evening job run?"
+            )
+        candidates = []
+
+    context = MarketContext(as_of=ctx.day, regime=regime or Regime.CHOP)
+
     if candidate_day is not None:
         age = (ctx.day - candidate_day).days
         if age > MAX_WATCHLIST_AGE_DAYS:

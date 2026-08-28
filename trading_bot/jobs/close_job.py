@@ -35,8 +35,10 @@ ALLOWED = {ActionKind.OPEN, ActionKind.CANCEL, ActionKind.CLOSE, ActionKind.ADJU
 def run(
     ctx: AgentContext,
     prices: dict[str, float] | None = None,
-    regime: Regime = Regime.TREND,
+    regime: Regime | None = None,
 ) -> JobResult:
+    """No default regime -- see the note in `open_job.run`. None means unknown,
+    and unknown declines to enter."""
     return run_job(
         NAME, ctx, lambda c, r, rec, rid: _body(c, r, rec, rid, prices or {}, regime)
     )
@@ -48,13 +50,24 @@ def _body(
     recon,
     run_id: int,
     prices: dict[str, float],
-    regime: Regime,
+    regime: Regime | None,
 ) -> None:
     portfolio = recon.portfolio
-    context = MarketContext(as_of=ctx.day, regime=regime)
+    context = MarketContext(as_of=ctx.day, regime=regime or Regime.CHOP)
 
     candidate_day = ctx.repo.latest_candidate_day(ctx.day)
     pending = ctx.repo.pending_candidates(candidate_day) if candidate_day else []
+
+    # Fail closed on an unknown regime: clearing the watchlist is what prevents
+    # the entry, since nothing can be opened that was never presented.
+    if regime is None:
+        if pending:
+            result.note(
+                f"NO REGIME on file for {ctx.day} -- declining "
+                f"{len(pending)} entries. Has the evening job run?"
+            )
+        pending = []
+
     if candidate_day is not None and (ctx.day - candidate_day).days > MAX_WATCHLIST_AGE_DAYS:
         result.note(
             f"STALE WATCHLIST: {candidate_day} is "

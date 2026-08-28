@@ -15,7 +15,14 @@ import pytest
 from tests.synthetic import random_universe
 
 from trading_bot.broker.paper import PaperBroker
-from trading_bot.core.models import Candidate, EntryType, EventFlags, SetupType
+from trading_bot.core.models import (
+    ActionKind,
+    Candidate,
+    EntryType,
+    EventFlags,
+    Regime,
+    SetupType,
+)
 from trading_bot.core.policy import Policy
 from trading_bot.data.cache import BarCache
 from trading_bot.db.repo import Repo
@@ -101,7 +108,7 @@ def test_unfilled_entries_land_in_the_shadow_book(ctx) -> None:
     )
     ctx.broker.submit_bracket("S00", 10, 50.0, 45.0, 65.0, "cid-x")
 
-    close_job.run(ctx, prices={})
+    close_job.run(ctx, prices={}, regime=Regime.TREND)
 
     rows = ctx.repo.conn.execute(
         "SELECT * FROM shadow_book WHERE not_taken_reason = 'unfilled'"
@@ -198,7 +205,7 @@ def test_open_places_resting_entries_only(ctx) -> None:
     evening.run(ctx)
     next_day = ctx.day + timedelta(days=1)
 
-    result = open_job.run(replace(ctx, day=next_day))
+    result = open_job.run(replace(ctx, day=next_day), Regime.TREND)
 
     assert result.status == "ok"
     submitted = ctx.broker.orders(open_only=True)
@@ -210,6 +217,77 @@ def test_open_places_resting_entries_only(ctx) -> None:
             assert order.ticker in ctx.repo.position_annotations()
 
 
+def test_open_does_not_enter_when_the_regime_is_untradeable(ctx) -> None:
+    """The 2026-08-27 bug, exactly.
+
+    The evening scan measured `chop`, correctly opened nothing, and still wrote
+    113 candidates as Pending. The next morning this job ran with a hardcoded
+    TREND and would have entered all of them -- trading the one regime the
+    frozen policy excludes, which no backtest ever validated.
+    """
+    evening.run(ctx)
+    next_day = ctx.day + timedelta(days=1)
+    assert ctx.repo.pending_candidates(ctx.day), "fixture must offer candidates"
+
+    # The shipped config restricts opens to `trend`; the library default stays
+    # permissive so the research baseline is unchanged, so the restriction has
+    # to be stated here or this test would pass for the wrong reason.
+    shipped = replace(
+        ctx,
+        day=next_day,
+        policy=ctx.policy.with_changes(tradeable_regimes=["trend"]),
+    )
+    assert not shipped.policy.may_open_in("chop")
+
+    result = open_job.run(shipped, Regime.CHOP)
+
+    assert result.status == "ok"
+    assert [a for a in result.executed if a.kind is ActionKind.OPEN] == []
+    assert all(o.side != "buy" for o in ctx.broker.orders(open_only=True))
+
+
+def test_open_declines_entries_when_no_regime_is_known(ctx) -> None:
+    """Unknown must not resolve to the permissive answer. A missing regime means
+    the evening scan has not run, so nothing has been classified from settled
+    data -- and entering on that basis is a guess."""
+    evening.run(ctx)
+    next_day = ctx.day + timedelta(days=1)
+
+    result = open_job.run(replace(ctx, day=next_day), None)
+
+    assert result.status == "ok", "declining to enter is not an error"
+    assert [a for a in result.executed if a.kind is ActionKind.OPEN] == []
+    assert any("NO REGIME" in n for n in result.notes)
+
+
+def test_close_declines_entries_when_no_regime_is_known(ctx, monkeypatch) -> None:
+    evening.run(ctx)
+    pending = ctx.repo.pending_candidates(ctx.day)
+    forced = [replace(c, entry_type=EntryType.CLOSE_CONFIRM) for c in pending]
+    monkeypatch.setattr(ctx.repo, "pending_candidates", lambda _d: forced)
+
+    result = close_job.run(
+        ctx, prices={c.ticker: c.entry for c in forced}, regime=None
+    )
+
+    assert [a for a in result.executed if a.kind is ActionKind.OPEN] == []
+    assert any("NO REGIME" in n for n in result.notes)
+
+
+def test_the_intraday_jobs_can_read_the_regime_the_evening_scan_recorded(
+    ctx,
+) -> None:
+    """The two halves have to meet: evening persists it, the CLI reads it back."""
+    evening.run(ctx)
+    recorded = ctx.repo.last_regime(ctx.day)
+
+    assert recorded is not None, "evening must persist what it classified"
+    assert Regime(recorded) in set(Regime)
+    # and it is still findable from a later session, since 10:00 today inherits
+    # the regime measured off yesterday's settled closes
+    assert ctx.repo.last_regime(ctx.day + timedelta(days=3)) == recorded
+
+
 def test_open_defers_close_confirmed_breakouts(ctx, monkeypatch) -> None:
     evening.run(ctx)
     next_day = ctx.day + timedelta(days=1)
@@ -218,7 +296,7 @@ def test_open_defers_close_confirmed_breakouts(ctx, monkeypatch) -> None:
     forced = [replace(c, entry_type=EntryType.CLOSE_CONFIRM) for c in pending]
     monkeypatch.setattr(ctx.repo, "pending_candidates", lambda _d: forced)
 
-    result = open_job.run(replace(ctx, day=next_day))
+    result = open_job.run(replace(ctx, day=next_day), Regime.TREND)
     assert ctx.broker.orders(open_only=True) == []
     assert any("deferred" in n for n in result.notes)
 
@@ -228,10 +306,10 @@ def test_open_is_idempotent(ctx) -> None:
     evening.run(ctx)
     next_day = ctx.day + timedelta(days=1)
 
-    first = open_job.run(replace(ctx, day=next_day))
+    first = open_job.run(replace(ctx, day=next_day), Regime.TREND)
     count_after_first = len(ctx.broker.orders(open_only=False))
 
-    second = open_job.run(replace(ctx, day=next_day))
+    second = open_job.run(replace(ctx, day=next_day), Regime.TREND)
     assert second.status == "ok"
     assert len(ctx.broker.orders(open_only=False)) == count_after_first
     if first.executed:
@@ -242,7 +320,7 @@ def test_the_kill_switch_stops_entries_but_the_job_still_runs(ctx) -> None:
     evening.run(ctx)
     ctx.repo.set_halt(True, "test")
 
-    result = open_job.run(replace(ctx, day=ctx.day + timedelta(days=1)))
+    result = open_job.run(replace(ctx, day=ctx.day + timedelta(days=1)), Regime.TREND)
 
     assert result.status == "ok"
     assert ctx.broker.orders(open_only=True) == []
@@ -299,7 +377,7 @@ def test_close_cancels_unfilled_entry_orders(ctx) -> None:
     ctx.broker.submit_bracket("S00", 10, 50.0, 45.0, 65.0, "cid-x")
     assert ctx.broker.orders(open_only=True)
 
-    result = close_job.run(ctx, prices={})
+    result = close_job.run(ctx, prices={}, regime=Regime.TREND)
     assert result.status == "ok"
     assert ctx.broker.orders(open_only=True) == []
     assert any("cancelled" in n for n in result.notes)
@@ -322,7 +400,7 @@ def test_a_full_day_cycle_keeps_the_database_and_broker_in_agreement(
         session = replace(ctx, day=day)
 
         premarket.run(session, NullSemanticEngine())
-        open_job.run(session)
+        open_job.run(session, Regime.TREND)
 
         # walk the market forward so resting orders fill and OCO legs fire
         for symbol in universe:
@@ -335,7 +413,7 @@ def test_a_full_day_cycle_keeps_the_database_and_broker_in_agreement(
             for c in ctx.repo.pending_candidates(ctx.repo.latest_candidate_day(day))
             if c.ticker in universe
         }
-        close_job.run(session, prices=prices)
+        close_job.run(session, prices=prices, regime=Regime.TREND)
         ctx.broker.roll_day()
         evening.run(session)
 
@@ -368,7 +446,7 @@ def test_close_does_not_cancel_the_entry_it_just_submitted(ctx, monkeypatch) -> 
     monkeypatch.setattr(ctx.repo, "pending_candidates", lambda _d: forced)
 
     prices = {c.ticker: c.entry for c in forced}
-    result = close_job.run(ctx, prices=prices)
+    result = close_job.run(ctx, prices=prices, regime=Regime.TREND)
 
     opened = [a for a in result.executed if a.kind.value == "OPEN"]
     assert opened, "expected at least one confirmed breakout"
@@ -401,7 +479,7 @@ def test_open_declines_a_stale_watchlist(ctx) -> None:
     assert ctx.repo.pending_candidates(ctx.day)
 
     much_later = ctx.day + timedelta(days=open_job.MAX_WATCHLIST_AGE_DAYS + 3)
-    result = open_job.run(replace(ctx, day=much_later))
+    result = open_job.run(replace(ctx, day=much_later), Regime.TREND)
 
     assert any("STALE WATCHLIST" in n for n in result.notes)
     assert ctx.broker.orders(open_only=True) == []
@@ -409,5 +487,5 @@ def test_open_declines_a_stale_watchlist(ctx) -> None:
 
 def test_a_fresh_watchlist_is_still_acted_on(ctx) -> None:
     evening.run(ctx)
-    result = open_job.run(replace(ctx, day=ctx.day + timedelta(days=1)))
+    result = open_job.run(replace(ctx, day=ctx.day + timedelta(days=1)), Regime.TREND)
     assert not any("STALE WATCHLIST" in n for n in result.notes)

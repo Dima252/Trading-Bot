@@ -11,7 +11,7 @@ and forward plan.
 | | |
 |---|---|
 | Implementation | ~8,600 lines, 57 modules |
-| Tests | **269 passing**, ~20s, no network, no credentials |
+| Tests | **287 passing**, ~21s, no network, no credentials |
 | Market data | 887,235 daily bars, 505 symbols, 2019-07 → 2026-08 |
 | Shipping config | `config/policy.yaml` **v2-holdout** — frozen, out-of-sample tested |
 | Broker | Alpaca paper connected and verified ($100k account) |
@@ -21,7 +21,7 @@ and forward plan.
 ### What runs today
 
 ```bash
-python -m pytest -q                    # 269 tests
+python -m pytest -q                    # 287 tests
 python scripts/demo.py                 # decision core on a hand-built book
 python -m trading_bot fetch            # real bars, no API key needed (Yahoo)
 python -m trading_bot backtest         # full report vs SPY
@@ -137,11 +137,12 @@ close-confirmation path could never actually open a position. Fixed; guarded by
 
 ---
 
-## 2c. Data integrity — the two guards on the cache
+## 2c. Data integrity — three things trusted without checking
 
-Both failures are silent by nature: the cache looks fine in every case, and the
-scan returns a plausible-looking answer. They are recorded here because neither
-is discoverable by reading the code that suffers from them.
+All three are silent by nature: nothing looks broken, and the scan returns a
+plausible answer every time. They are recorded here because none is discoverable
+by reading the code that suffers from it — each lives in the gap between two
+components that individually look correct.
 
 ### Guard 1 — a stale cache (found session 4)
 
@@ -179,10 +180,41 @@ Fixed on all three counts:
 The 472 rows were deleted and coverage rolled back to 2026-08-27; a backup sits
 at `data/bars.db.bak`. `tests/test_market_hours.py` pins all of it.
 
-**The general lesson, and the reason this is in the plan rather than a commit
-message:** every "do we have the data?" check in this system was a presence
-check. Presence was never the question — *settledness* was. Worth asking of any
-guard added later.
+### Guard 3 — a fabricated regime (found the same day, while checking guard 2)
+
+The evening scan of 2026-08-27 measured **`chop`**, correctly opened nothing, and
+recorded the regime to `equity_history`. It also wrote its 113 setups as
+`status='Pending'`.
+
+The next morning `open_job` would have entered all 113 — because its signature
+read `regime: Regime = Regime.TREND`, and the CLI never passed one. TREND is the
+only regime the frozen policy permits trading in, so the gate always opened. The
+backtest never behaved this way: `engine.py` feeds `decide()` the regime it
+actually measured.
+
+That is a **live-vs-backtest divergence in the permissive direction**, in exactly
+the regime the shipped config excludes. The holdout number describes a system
+that does not trade chop; the deployed one would have.
+
+Fixed at the root — the fabricated default, not the candidate rows:
+
+- `open_job.run` / `close_job.run` take `Regime | None` with **no default**.
+- `Repo.last_regime(day)` reads back what the evening scan measured; the CLI
+  passes it. The intraday jobs cannot classify it themselves — at 10:00 today's
+  bar is still forming, and a regime read off an unsettled close is not a regime.
+- `None` means *unknown*, and unknown **declines to enter** while defensive work
+  continues. Unknown must never resolve to the permissive answer.
+
+Candidates are still written as Pending in an untradeable regime, deliberately:
+the decision to decline them is then recorded as a rejection with a reason,
+which is a better audit trail than never writing them at all.
+
+**The general lesson, and the reason all three are in the plan rather than in
+commit messages:** each was a *default that looked like a fact*. A bar's presence
+stood in for it being settled; coverage reaching `end` stood in for it being
+correct; a parameter default stood in for a measurement. None announced itself,
+and the tests passed throughout. Worth asking of anything added later: **is this
+value measured, or merely assumed?**
 
 ---
 
