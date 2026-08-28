@@ -34,11 +34,43 @@ from ..core.models import (
 from ..core.policy import Policy
 from ..core.scoring import rank_candidates
 from ..data.models import BarSeries
-from ..signals.engine import Indicators, scan
+from ..signals.engine import MIN_HISTORY, Indicators, find_setups, scan
 from ..signals.regime import breadth_of, classify
 from .fills import FillModel, check_exit, check_exit_intraday, check_limit_fill
 from .records import BacktestResult, EquityPoint, ShadowRecord, TradeRecord
 from .simulate import simulate_forward
+
+
+def precompute_candidates(
+    universe: dict[str, BarSeries],
+    indicators: dict[str, Indicators],
+    sectors: dict[str, str],
+    policy: Policy,
+    days: list[date],
+) -> dict[date, list[Candidate]]:
+    """Every candidate the scanner would emit, for every day, up front.
+
+    Setups depend only on bars and policy -- never on the portfolio -- so this is
+    the same work the daily loop does, hoisted out of it. A walk-forward can then
+    scan once per variant instead of once per variant per fold.
+
+    This is purely a rearrangement: `test_precomputed_candidates_match_scanning`
+    asserts it produces exactly what the daily path produces.
+    """
+    wanted = set(days)
+    out: dict[date, list[Candidate]] = {d: [] for d in days}
+
+    for symbol, series in universe.items():
+        ind = indicators.get(symbol)
+        if ind is None:
+            continue
+        sector = sectors.get(symbol, "UNKNOWN")
+        for i, bar in enumerate(series.bars):
+            if i < MIN_HISTORY or bar.day not in wanted:
+                continue
+            out[bar.day].extend(find_setups(series, ind, i, sector, policy))
+
+    return out
 
 
 @dataclass(frozen=True)
@@ -114,6 +146,7 @@ class Backtest:
         config: BacktestConfig,
         policy: Policy,
         indicators: dict[str, Indicators] | None = None,
+        candidates_by_day: dict[date, list[Candidate]] | None = None,
     ) -> None:
         if config.benchmark not in universe:
             raise ValueError(f"benchmark {config.benchmark!r} missing from universe")
@@ -143,6 +176,7 @@ class Backtest:
             else {s: Indicators.compute(b) for s, b in universe.items()}
         )
 
+        self.candidates_by_day = candidates_by_day
         self.cash = config.starting_equity
         self._regime = Regime.TREND
         self.aborted_fills = 0
@@ -238,9 +272,12 @@ class Backtest:
 
     def _think(self, day: date, context: MarketContext) -> None:
         portfolio = self._portfolio(day)
-        candidates = scan(
-            self.tradeable, day, self.sectors, self.indicators, self.policy
-        )
+        if self.candidates_by_day is not None:
+            candidates = self.candidates_by_day.get(day, [])
+        else:
+            candidates = scan(
+                self.tradeable, day, self.sectors, self.indicators, self.policy
+            )
 
         actions = decide(portfolio, candidates, context, self.policy)
         verdict = ConstraintLayer(self.policy, sectors=self.sectors).validate(
@@ -461,7 +498,8 @@ def run_backtest(
     config: BacktestConfig,
     policy: Policy | None = None,
     indicators: dict[str, Indicators] | None = None,
+    candidates_by_day: dict[date, list[Candidate]] | None = None,
 ) -> BacktestResult:
     return Backtest(
-        universe, sectors, config, policy or Policy(), indicators
+        universe, sectors, config, policy or Policy(), indicators, candidates_by_day
     ).run()

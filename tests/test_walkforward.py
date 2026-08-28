@@ -208,3 +208,55 @@ def test_breadth_matches_with_and_without_the_cache() -> None:
         assert breadth_of(universe, day) == pytest.approx(
             breadth_of(universe, day, indicators)
         )
+
+
+def test_precomputed_candidates_match_scanning() -> None:
+    """Hoisting the scan out of the daily loop is a rearrangement, not a change.
+
+    If these ever diverge, every walk-forward result is measuring something the
+    live path would not produce.
+    """
+    from trading_bot.backtest.engine import precompute_candidates
+    from trading_bot.signals.engine import Indicators, scan
+
+    universe, sectors = random_universe(n_symbols=6, n_bars=500, seed=12)
+    tradeable = {s: b for s, b in universe.items() if s != "SPY"}
+    indicators = {s: Indicators.compute(b) for s, b in tradeable.items()}
+    days = universe["SPY"].days[260::11]
+
+    ahead = precompute_candidates(tradeable, indicators, sectors, Policy(), days)
+    for day in days:
+        live = scan(tradeable, day, sectors, indicators, Policy())
+        assert sorted(ahead[day], key=lambda c: c.ticker) == sorted(
+            live, key=lambda c: c.ticker
+        )
+
+
+def test_precomputing_does_not_change_backtest_results() -> None:
+    from trading_bot.backtest.engine import (
+        BacktestConfig,
+        precompute_candidates,
+        run_backtest,
+    )
+    from trading_bot.signals.engine import Indicators
+
+    universe, sectors = random_universe(n_symbols=6, n_bars=600, seed=13)
+    days = universe["SPY"].days
+    cfg = BacktestConfig(start=days[300], end=days[-1], starting_equity=100_000.0)
+
+    tradeable = {s: b for s, b in universe.items() if s != "SPY"}
+    indicators = {s: Indicators.compute(b) for s, b in universe.items()}
+    span = [d for d in days if cfg.start <= d <= cfg.end]
+
+    plain = run_backtest(universe, sectors, cfg)
+    hoisted = run_backtest(
+        universe,
+        sectors,
+        cfg,
+        indicators=indicators,
+        candidates_by_day=precompute_candidates(
+            tradeable, indicators, sectors, Policy(), span
+        ),
+    )
+    assert plain.trades == hoisted.trades
+    assert plain.curve == hoisted.curve

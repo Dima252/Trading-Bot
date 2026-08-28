@@ -138,11 +138,31 @@ def run_walkforward(
     cash_rate_symbol: str | None = None,
     progress: bool = True,
 ) -> WalkForward:
-    from .engine import Indicators
+    from .engine import Indicators, precompute_candidates
 
     if progress:
         print(f"  computing indicators for {len(universe)} symbols...", flush=True)
     shared = {s: Indicators.compute(b) for s, b in universe.items()}
+
+    # Scan once per variant over every day any fold will touch, rather than once
+    # per variant per fold.
+    tradeable = {
+        s: b
+        for s, b in universe.items()
+        if s != benchmark and not s.startswith("^")
+    }
+    span = sorted(
+        d
+        for d in universe[benchmark].days
+        if folds[0].start <= d <= folds[-1].end
+    )
+    scans: dict[str, dict] = {}
+    for name, policy in variants.items():
+        if progress:
+            print(f"  scanning {len(span)} sessions for {name}...", flush=True)
+        scans[name] = precompute_candidates(
+            tradeable, shared, sectors, policy, span
+        )
 
     out = WalkForward(baseline=baseline, folds=folds)
 
@@ -165,6 +185,7 @@ def run_walkforward(
                 ),
                 policy,
                 indicators=shared,
+                candidates_by_day=scans[name],
             )
             out.results.append(
                 FoldResult(
