@@ -33,7 +33,7 @@ Execution: **scheduled, stateless jobs** — no daemon, no `while True`.
 flowchart TB
     subgraph inputs [Inputs]
         BROKER[Alpaca<br/>positions, cash, orders]
-        MKT[Market data<br/>daily + hourly OHLCV]
+        MKT[Market data<br/>daily OHLCV]
         NEWS[News / filings / calendar]
     end
 
@@ -198,6 +198,13 @@ sends it to the rotation path where it can free real capital or be skipped entir
 A **separate module** that validates the proposed action list. It does not participate in strategy.
 Every rejection is logged with the rule that fired.
 
+> **These are the library defaults, not what is running.** The shipped
+> `config/policy.yaml` (`v2-holdout`) is deliberately looser on risk — 1.6% per
+> trade, 9.6% heat, 24% per position — because that combination is what survived
+> the holdout. The defaults below are the research baseline, kept unchanged so
+> every recorded result stays reproducible. `python -m trading_bot status` prints
+> what is actually loaded.
+
 | Rule | Default | Rationale |
 |---|---|---|
 | Max risk per trade | 1.0% of equity | Fixed fractional sizing off stop distance |
@@ -291,8 +298,8 @@ misses most pullback fills where price dips to support at 11:00 and recovers by 
 
 | Setup | Mechanism | Job | Order |
 |---|---|---|---|
-| Breakout / momentum | Close confirmation → submit at 15:30 | `close.py` | Bracket, limit |
-| Pullback / mean reversion | Resting limit placed ~10:00, DAY | `open.py` | Bracket, limit, cancelled EOD if unfilled |
+| Breakout / momentum | Close confirmation → submit at 15:30 | `close_job.py` | Bracket, limit |
+| Pullback / mean reversion | Resting limit placed ~10:00, DAY | `open_job.py` | Bracket, limit, cancelled EOD if unfilled |
 
 Resting limits are *more* aligned with the stateless design, not less — the broker watches the price
 instead of cron guessing when to look. Sizing works either way because the trigger price and stop
@@ -446,21 +453,29 @@ Requirements:
 
 ## 11. Stack
 
+The notable thing here is how little there is. **The entire decision path — models,
+policy, sizing, scoring, the constitution, `decide()`, every indicator, the
+backtest engine, the state store — is standard library only.**
+
 | Choice | Why |
 |---|---|
-| **Python 3.11+** | Ecosystem |
-| **SQLite + SQLAlchemy** | Single-writer, cron-serialized workload. Perfect fit, zero ops. SQLAlchemy keeps a Postgres migration trivial if it's ever needed. |
-| **alpaca-py** | Broker + market data |
-| **pandas + pandas-ta** | Indicators |
-| **pydantic** | Structured LLM output validation |
-| **Anthropic API** | Semantic engine |
-| **pytest** | Especially the constraint layer and sizing — where bugs cost money |
+| **Python 3.11+** | `zoneinfo` and `X \| Y` types without imports |
+| **`sqlite3`, stdlib** | Single-writer, cron-serialised workload. No ORM: the queries are twenty lines of SQL that never change, and an ORM would add a dependency to hide them. |
+| **Hand-written indicators** | SMA/EMA/RSI/ATR/ADX/stdev are forty lines each and fully tested. `pandas-ta` would pull in pandas and numpy to compute what fits on one screen — and its lookahead behaviour would then be *its* correctness problem, not one this repo can test. |
+| **`alpaca-py`** | Broker, market calendar, live prices |
+| **`requests`** | Yahoo bar fetch, which needs no credentials — the backtest never had to wait for keys |
+| **`pyyaml`** | Reading `config/policy.yaml`. Optional; there are built-in defaults |
+| **`anthropic`** | Semantic engine. Optional; absent it runs calendar-only |
+| **`pytest`, `ruff`** | Dev only |
 
-**Bars: daily + hourly.** Dropping 4H — a 6.5-hour US session doesn't divide into 4H bars cleanly,
-and the ragged final bar creates subtle lookahead bugs.
+**Bars: daily only.** Every rule in the system is a daily-bar rule, and the
+intraday jobs read live prices rather than intraday bars. Hourly and 4H were
+considered and dropped: a 6.5-hour US session does not divide cleanly, and the
+ragged final bar is a lookahead bug waiting to happen.
 
-**Hosting: an always-on VPS**, not a laptop that sleeps. Three cron jobs that silently don't fire is
-the most likely failure mode of the whole system.
+**Hosting: an always-on VPS**, not a laptop that sleeps. Cron jobs that silently
+do not fire are the most likely failure mode of the whole system — which is why
+the heartbeat in §17 matters more than the webhook.
 
 ---
 
@@ -475,11 +490,13 @@ trading_bot/
 │   ├── scoring.py         # one 0-100 scale for candidates AND holdings
 │   ├── constraints.py     # the constitution
 │   └── decide.py          # decide() -- defensive, capacity, rank, rotate, allocate
+├── market_hours.py        # which session, and whether it has closed yet
 ├── data/
 │   ├── models.py          # Bar, BarSeries (plain lists, not DataFrames)
 │   ├── cache.py           # SQLite bar cache, incremental refresh
 │   ├── alpaca_data.py     # historical bars, latest prices, calendar
-│   └── universe.py        # 85-name liquid universe + sector map + liquidity screen
+│   ├── yahoo.py           # split/dividend-adjusted bars, no credentials needed
+│   └── universe.py        # ~500-name S&P universe + sector map + liquidity screen
 ├── signals/
 │   ├── indicators.py      # SMA/EMA/RSI/ATR/ADX/stdev, hand-written and tested
 │   ├── engine.py          # Indicators.compute() + find_setups() + scan()
@@ -490,6 +507,7 @@ trading_bot/
 │   ├── fills.py           # gap-through-stop, stop-beats-target, slippage
 │   ├── simulate.py        # forward simulation for the shadow book
 │   ├── records.py         # TradeRecord / ShadowRecord -- shared with live
+│   ├── walkforward.py     # does a change hold across independent periods?
 │   └── metrics.py         # expectancy, MFE/MAE diagnostics, shadow verdicts
 ├── broker/
 │   ├── base.py            # Broker protocol, Account, BrokerOrder
@@ -498,7 +516,7 @@ trading_bot/
 │   ├── orders.py          # deterministic client_order_id, bracket validation
 │   └── reconcile.py       # forces the database to agree with the broker
 ├── db/
-│   ├── schema.py          # 10 tables
+│   ├── schema.py          # 11 tables
 │   └── repo.py            # repository
 ├── semantic/
 │   └── client.py          # Claude event-risk screen + earnings calendar
@@ -510,9 +528,20 @@ trading_bot/
 │   └── close_job.py       # 15:30
 ├── learning/
 │   ├── attribution.py     # live report over the same shapes the backtest emits
+│   ├── diagnose.py        # is the ranking function predictive? (rho + z-score)
 │   └── tune.py            # evidence-gated proposals, never silent edits
+├── ops/
+│   └── notify.py          # webhook alerts + external heartbeat
+├── ui/
+│   ├── dashboard.py       # one self-contained HTML file, no server
+│   └── server.py          # live view + halt switch, localhost only
 └── cli.py                 # python -m trading_bot <command>
 ```
+
+`deploy/` holds the crontab template and a provisioning script for phase 2;
+`records/` holds the research audit trail (walk-forward and holdout results);
+`scripts/` holds `demo.py` and `rehearse.py`, which exercise the decision core
+and replay the four jobs over real bars.
 
 ## 13. The daily pipeline
 
@@ -521,13 +550,41 @@ constrain → act → log.**
 
 | Time (ET) | Job | Allowed actions | Purpose |
 |---|---|---|---|
-| **18:00** | `evening.py` | All | The main think. Reconcile, review every holding, run the scanner and signal engine, score everything on one scale, rotate, write tomorrow's candidates. |
+| **18:00** | `fetch` | — | Refresh the bar cache. **Must precede `evening`.** |
+| **18:15** | `evening.py` | All | The main think. Reconcile, review every holding, run the scanner and signal engine, score everything on one scale, rotate, write tomorrow's candidates. |
 | **09:00** | `premarket.py` | `CLOSE`, `CANCEL`, `ADJUST_STOP` | Defensive only. Overnight news → semantic engine → veto invalidated setups, react to gaps. |
 | **10:00** | `open_job.py` | Execute queued `OPEN` (resting) | After the opening range settles. Place sized bracket limits for pullback entries. |
 | **15:30** | `close_job.py` | Execute close-confirmed `OPEN`, `CANCEL` | Breakout confirmation, cancel unfilled day orders, final reconcile. |
 
 Note the ordering fix: **reconcile and review holdings before gating on capital.** The original
 design exited early when buying power was low — exactly when you most need to examine what you hold.
+
+### Three guards, because the failures here are all silent
+
+Every one of these was a live defect, and none of them raised anything. They are
+documented at length in [PLAN.md §2c](PLAN.md); the short version:
+
+| Guard | Without it |
+|---|---|
+| `evening` errors on a **stale cache** | The scanner matches session dates exactly, so every symbol is invisible and the scan returns a clean zero — which reads as a quiet market, for months. |
+| `evening` refuses an **unclosed session** | A daily bar exists from the opening bell with a "close" that is just the last trade. The staleness guard passes, because the bar is *present*. |
+| Intraday jobs read the **measured regime** | They used to default to the one regime the policy permits trading in, so the regime gate always opened. |
+
+The common shape: a default standing in for a measurement. `ruff` now runs with
+the `DTZ` rules enabled specifically because three separate versions of this came
+from a local clock substituting for the exchange's.
+
+### Running it by hand
+
+For the dry run, one command does the whole nightly routine in order:
+
+```bash
+python -m trading_bot daily          # fetch -> scan -> render, dry run
+python -m trading_bot daily --arm    # the same, actually sending orders
+```
+
+Dry run is the default. It refuses to do anything before the closing bell, and
+stops at the first failure rather than scanning a cache that did not refresh.
 
 The emitted action list, with its `reason` and `score` fields, **is** the decision log. The audit
 trail and the learning substrate fall out of the design rather than being bolted on.
@@ -541,14 +598,15 @@ Each phase is independently valuable and testable.
 | Phase | Deliverable | Proves | Status |
 |---|---|---|---|
 | **0** | Data layer, indicators, 3 setups, regime, backtest harness | The loop works end to end. No broker, no LLM. | **done** |
-| **1** | `models.py`, `policy.py`, `sizing.py`, `scoring.py`, `constraints.py`, `decide.py` + 58 tests | The money math. Pure Python, no I/O. | **done** |
+| **1** | `models.py`, `policy.py`, `sizing.py`, `scoring.py`, `constraints.py`, `decide.py` | The money math. Pure Python, no I/O. | **done** |
 | **2** | DB schema, repo, reconciler, Alpaca + paper brokers | State stays consistent with Alpaca | **done** |
-| **3** | The four jobs + CLI | The plumbing. **Still needs a month of live paper running.** | code done |
+| **3** | The four jobs + CLI | The plumbing. Connected to the paper account; **no order has been placed yet.** | code done |
 | **4** | Shadow book + attribution + diagnostics | Measurement — before adding anything else | **done** |
 | **5** | Semantic engine (Claude, structured output) | Then measure whether the veto actually helps | code done |
 | **6** | Proposal engine with guardrails | Learning loop closes | **done** |
-| **7** | ML signal generation | Only if it beats the rules baseline out of sample | not started |
-| **8** | UI layer — static dashboard, then a live server with controls | The bot becomes observable without SQL | not started |
+| **7** | ML signal generation | Only if it beats the rules baseline out of sample | **not started, and blocked** — see §16 |
+| **8** | UI layer — static dashboard, then a live server with controls | The bot becomes observable without SQL | **done** |
+| **9** | Walk-forward + holdout validation | A change is only real if it holds across periods it never saw | **done, and the holdout is spent** |
 
 Phases 1 and 2 matter more than any model. Edges in daily-bar swing systems are thin; most of the
 value here is disciplined, measurable infrastructure. Build so that in six months *"is the LLM gate
@@ -570,7 +628,7 @@ earning its keep?"* is answered with data instead of a feeling.
 | Single global entry rule | Entry mechanism per setup type | Close-confirmation misses pullback fills entirely |
 | Size off `buying_power` | Size off cash + equity risk | `buying_power` includes margin — silent leverage |
 | Per-trade risk only | Per-trade risk **and** portfolio heat cap | 8 × 2% = 16% simultaneous correlated risk |
-| Daily / 4H bars | Daily / hourly | 4H doesn't divide a 6.5h session; ragged bars cause lookahead bugs |
+| Daily / 4H bars | **Daily only** | 4H doesn't divide a 6.5h session; ragged bars cause lookahead bugs. Intraday jobs read live prices, not intraday bars |
 | No learning infrastructure | Shadow book, MFE/MAE, versioned policy | Cannot be backfilled — must exist before the first live trade |
 
 ---
@@ -657,8 +715,33 @@ risk-adjusted picture is genuinely better; the absolute return is not.
 
 1. **The diagnostic saw every fold.** `shallow` was derived from a run over the
    full period, so the folds are not truly out of sample for it. Only the
-   HOLDOUT (2025-06-11 → 2026-08-27) is untouched, and it can be spent once.
+   HOLDOUT (2025-06-11 → 2026-08-27) was untouched.
 2. **Survivorship bias** is unchanged and flatters every number here.
+
+### The holdout, spent once — 2026-08-28
+
+Two variants went in. The one that had looked strongest **failed**.
+
+| Variant | Trades | Exp R | Return | vs SPY | max DD | ret/DD |
+|---|---|---|---|---|---|---|
+| `all_three` | 87 | **−0.132** | 4.33% | −25.70% | 8.69% | 0.50 |
+| **`risk_1p6`** *(shipped)* | 61 | **+0.127** | 14.95% | −15.08% | 6.83% | 2.19 |
+
+`all_three` cleared **4/4** walk-forward folds at +0.169R and then went negative
+out of sample. `risk_1p6` held almost exactly (+0.120 → +0.127).
+
+**The lesson, recorded because it cost a holdout to learn:** consistency across
+folds is *necessary but not sufficient*. Four independent periods agreeing was
+not enough to make `all_three` real — the folds had all been seen by the process
+that selected it, and that is a subtler kind of leakage than reusing a test set.
+
+Neither variant cleared the §5 bar; SPY returned 30.03% at 3.38 ret/DD over the
+same stretch. The shipped config is the one whose *edge generalised*, not one
+that beat the index. Full output: [`records/`](records/).
+
+**The historical data is now exhausted.** Further backtesting can only produce
+overfitting, which is why the config is frozen and the next evidence has to be
+live. See [PLAN.md §5d](PLAN.md) for the stopping rule.
 
 ---
 
@@ -672,7 +755,8 @@ quietly not working.
 | **Earnings calendar** | The single hardest-blocking rule has no data source. `StaticEarningsCalendar` reads `config/earnings.json`; with no file it logs a warning and the rule **never fires**. | A real provider. Alpaca does not publish one. |
 | **Data feed latency** | The 15:30 close-confirmation check reads `latest_prices()`. On a delayed feed it is reading ~15-minute-old prices and the confirmation is meaningless. | Confirm what your account actually returns, then either pay for real-time or move the check. |
 | **`ADD` to a position** | `decide()` never emits it. Layering shares onto a live OCO bracket is a three-step transaction (cancel exits → add → re-place for combined size). The constraint layer already validates it. | Executor work, and a rollback path. |
-| **Live paper track record** | Zero. Every number in this repo comes from synthetic data or a survivorship-biased backtest. | A month of `--dry-run`, then a month live on paper. |
+| **Live paper track record** | Zero. Every number in this repo comes from historical replay on a survivorship-biased universe. | Two weeks of `daily`, then six months armed. |
+| **Alerting** | `TRADING_BOT_WEBHOOK` and `TRADING_BOT_HEARTBEAT` are both unset. The heartbeat is the one that matters: it is the only thing that can catch the bot *not running at all*, because dead code sends no alerts. | Two URLs. `python -m trading_bot status` shows which are wired. |
 | **Survivorship bias** | The universe is a present-day list of names that survived. Backtest returns are optimistic. | No cheap fix. Read relative comparisons, not absolute returns. |
 | **Circuit breaker recovery** | Deliberately manual — a tripped weekly breaker stays tripped until `halt --off`. | Nothing, unless you want auto-resume. |
 
@@ -680,7 +764,16 @@ quietly not working.
 
 ## 18. Testing
 
-171 tests, no network, no credentials, ~10 seconds. The ones that carry the most weight:
+**326 tests, no network, no credentials, ~21 seconds.** Coverage is 84%; `ruff`
+is clean with `E,F,I,UP,B,SIM,DTZ,RUF` enabled.
+
+```bash
+python -m pytest -q
+python -m pytest -q --cov=trading_bot --cov-report=term-missing
+python -m ruff check .
+```
+
+The ones that carry the most weight:
 
 - **`test_setups.py::test_no_lookahead_*`** — detection at bar *i* is identical whether or not bars
   after *i* exist. If this passes, no indicator and no setup can read the future.
@@ -694,23 +787,78 @@ quietly not working.
   a trade reconstructed after the fact.
 - **`test_jobs.py::test_a_full_day_cycle_*`** — five sessions end to end; afterwards every broker
   position has an annotation and every annotation the broker cannot confirm is a recorded trade.
+- **`test_market_hours.py`** — the clock. Which session a job means, whether it has
+  closed, and whether a bar cached mid-session can still be repaired. All three
+  were live defects found on 2026-08-28.
+- **`test_jobs.py::test_open_does_not_enter_when_the_regime_is_untradeable`** — the
+  live system must not trade regimes the backtest never traded.
+- **`test_cli.py::test_the_shipped_policy_still_opens_only_in_trend`** — if this
+  fails, the deployed system is no longer the one the holdout validated.
 
 ---
 
+
 ## Status
 
-**Phases 0-6 are built.** ~6,200 lines of implementation, ~2,500 lines of tests, 171 passing.
+**Phases 0–6, 8 and 9 are built.** ~8,840 lines of implementation across 58
+modules, ~4,476 lines of tests, **326 passing**, 84% coverage, lint clean.
 
-The system runs end to end today on synthetic data: scan → score → decide → constitution → broker →
-database → reconcile → attribute. What it has never done is trade, because nothing has ever had
-credentials.
+### What has actually been done
 
-**Next, in order:**
+| | |
+|---|---|
+| **The system runs end to end** | scan → score → decide → constitution → broker → database → reconcile → attribute, on 887,235 real daily bars across 505 symbols |
+| **It is connected to a real broker** | Alpaca paper, $100k account, verified. Positions, cash, orders and the market calendar all come from it |
+| **It has never placed an order** | Every run so far has been `--dry-run` or a paper-broker rehearsal |
+| **The strategy was tested, and the first version failed** | −0.009R over 1,107 trades. The ranking function measured *useless* (rho = 0.001 over 25,018 candidates) because a 60%-weighted input was anti-predictive |
+| **The corrections were validated out of sample** | Four independent walk-forward folds, then a holdout spent exactly once. Expectancy held: **+0.120R in sample → +0.127R out of sample** over 61 trades, with a 6.83% max drawdown against the benchmark's 8.88% |
+| **The config is frozen** | `config/policy.yaml` is not to be edited during the trial. Editing it discards the evidence it was selected on |
 
-1. Add Alpaca paper keys, `fetch`, and run a **real backtest**. That is the decision point — if the
-   rules show no edge over several years, iterate on `signals/setups/` before anything else. This is
-   cheap now and expensive later.
-2. Wire an earnings calendar. It is a hard-blocking rule that currently cannot fire.
-3. Run the four jobs with `--dry-run` for a couple of weeks and read the decision log.
-4. Drop `--dry-run`. Leave it alone for a month.
-5. `python -m trading_bot report` — and only then start changing things.
+### What it is not
+
+Being blunt, because the numbers above are easy to over-read:
+
+- **It does not beat SPY.** The holdout is the clearest statement of this: the
+  strategy returned 14.95% while SPY did 30.03%, and lost on the risk-adjusted
+  measure too (2.19 against 3.38). That is not a surprise — it is the same
+  pattern every fold showed. It wins risk-adjusted in weak and choppy markets and
+  loses in strong ones, and the holdout period was a strong one. What was built
+  is a *defensive profile* — lower drawdown, lower return — not an index-beater.
+  More parameter tuning will not change that; it is what a long-only system that
+  sits out chop and caps position size does.
+- **The holdout confirmed the expectancy, not the bar.** Those are different
+  claims. The corrections were real and they generalised; the resulting system
+  still did not clear the return/drawdown bar in §5. The full record is in
+  [`records/holdout_result.txt`](records/holdout_result.txt).
+- **The backtest is survivorship-biased.** The universe is a present-day list of
+  names that survived. Read relative comparisons, never absolute returns.
+- **There is no live track record.** Zero trades. Everything above comes from
+  historical replay.
+
+### What remains
+
+**Now — the dry run.** Two weeks of `python -m trading_bot daily`, reading the
+decision log. Judge the *reasoning*, not the P&L: sample sizes this small say
+nothing about edge. Then `--arm`, and six months without changing anything
+(the stopping rule is [PLAN.md §5d](PLAN.md)).
+
+**Before real money** — the three in §17, of which the earnings calendar is the
+one that matters. It is deliberately unwired for the paper trial: the backtest
+ran without it, so wiring it now would make the trial test a system that was
+never validated.
+
+**Future improvements, roughly in order of expected value:**
+
+| | Why | Blocked on |
+|---|---|---|
+| **An always-on host** | A laptop misses sessions, and `CRON_TZ` also fixes the DST drift a local scheduler has | ~$5/month VPS. `deploy/setup.sh` does the rest |
+| **Heartbeat + webhook alerts** | The heartbeat is the only thing that can catch the bot *not running* — dead code sends no alerts | Two URLs |
+| **Earnings calendar** | The hardest-blocking rule currently has no data source and can never fire | A provider; Alpaca does not publish one |
+| **A second uncorrelated strategy** | The diagnosis in §16 was that the *structure* limits returns, not the parameters. Short signals or a non-equity sleeve change the structure; tuning does not | Nothing technical — but the holdout is spent, so it needs new out-of-sample data |
+| **ML signal generation (phase 7)** | Only worth it if it beats the rules baseline out of sample | **The historical data is exhausted.** Any model selected on it now would be fitting noise. This needs the six months of live data first |
+| **`ADD` to a position** | `decide()` never emits it; layering onto a live OCO bracket is a three-step transaction | Executor work and a rollback path |
+
+The honest summary: **the infrastructure is finished and the strategy is
+mediocre-but-measured.** The next genuinely informative event is not another
+backtest — it is live data. That is what the six months are for, and it is why
+the config is frozen and the research is closed.
