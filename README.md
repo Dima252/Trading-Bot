@@ -128,7 +128,8 @@ class Candidate:
 
 @dataclass
 class Action:
-    kind: str                  # OPEN | CLOSE | TRIM | ADD | ADJUST_STOP | CANCEL | HOLD
+    kind: str                  # OPEN | CLOSE | TRIM | ADD | ADJUST_STOP | CANCEL
+                               # (holding is the absence of an action, not one)
     ticker: str
     qty: int
     limit: float | None

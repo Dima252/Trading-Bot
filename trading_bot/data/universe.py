@@ -110,12 +110,12 @@ def all_symbols(include_benchmark: bool = True) -> list[str]:
 
 
 def is_tradeable(symbol: str) -> bool:
-    """Index and rate series are inputs, never positions."""
+    """Index and rate series are inputs, never positions.
+
+    The benchmark is excluded separately by callers, which know their own
+    benchmark symbol; this covers the `^`-prefixed series.
+    """
     return not symbol.startswith("^") and symbol != BENCHMARK
-
-
-def sector_of(symbol: str) -> str:
-    return SECTORS.get(symbol, "UNKNOWN")
 
 
 # ---------------------------------------------------------------------- #

@@ -156,81 +156,40 @@ or a different edge type — rather than more tuning of this one.
 
 ---
 
-## 4. Roadmap
+## 4. What remains
 
-Three tracks. **A** decides whether this is worth trading at all; **B** makes it
-observable; **C** goes live. A must reach a verdict before C starts. B can run
-in parallel and is useful either way.
+Track A (does this have an edge?) is **closed** — the historical data is spent.
+What is left is operational.
 
-### Track A — Does this have an edge? (research)
-
-| Step | What | Size | Owner |
-|---|---|---|---|
-| A1 | Add regime gate as a 5th variant; re-run walk-forward | small | me |
-| A2 | Monte Carlo bootstrap on the trade sequence — is the equity curve luck? Gives a realistic worst-case drawdown that a single path understates | medium | me |
-| A3 | Parameter sensitivity sweep — plateau (real) vs knife-edge (fitted) | medium | me |
-| A4 | **Spend the holdout** on the single best variant. One shot. | small | you approve, me run |
-| A5 | Verdict against the pre-set bar (§5) | — | you |
-
-**If A fails the bar:** the honest options are to change the game, not the
-parameters — a less efficient universe (small/mid caps), a longer holding period
-(current average is 8 days, which is short-term noise more than swing), or a
-different edge type. That is a new Track A, not a patch.
-
-### Track B — The UI layer
-
-The most valuable thing to see is **not** a P&L number. It is *why the bot did
-what it did, and what it declined* — that data already exists in `decisions`,
-`shadow_book`, and `runs` and is currently only readable via SQL.
-
-**B1 — Static HTML dashboard** (do this first)
-
-`python -m trading_bot dashboard --out dashboard.html` renders one
-self-contained file from the state database. No server, no runtime dependency in
-the trading path, nothing that can break the bot. Cron regenerates it after the
-evening job.
-
-Sections, in priority order:
-
-1. **Status bar** — equity, day/week P&L, heat vs cap, halt state, and **last run
-   time per job, red when stale**. A job that silently stopped firing is the
-   most likely failure mode of the whole system; it belongs at the top.
-2. **Equity curve vs SPY** — inline SVG, no chart library, no external assets.
-3. **Open positions** — qty, entry, current, unrealized R, days held, stop,
-   target, sector, and the original thesis text.
-4. **Tonight's watchlist** — candidates with score, setup, levels, status, and
-   why anything was cancelled.
-5. **Decision log** — the last N actions with their `reason` string, plus vetoed
-   actions with the constraint rule that fired. This is the centrepiece.
-6. **Recent trades** — realized R, MFE/MAE, exit reason, days held.
-7. **Attribution** — expectancy by setup and regime, thin buckets marked.
-8. **Shadow book verdicts** — is each filter earning its keep.
-
-**B2 — Live server with controls**
-
-`python -m trading_bot serve --port 8080`. Same rendering, plus:
-- auto-refresh
-- **halt / resume buttons** wired to the existing kill switch
-- force-run a job with `--dry-run` and see the output
-
-Needs auth before it is exposed beyond localhost — bind to 127.0.0.1 and reach
-it over an SSH tunnel rather than opening a port.
-
-**B3 — Notifications.** A message when a job fails, when a breaker trips, or when
-the agent opens or closes a position. Email or a webhook; small.
-
-### Track C — Going live
-
-Only after A5 returns a positive verdict.
+### Ready and waiting on you
 
 | Step | What | Owner |
 |---|---|---|
-| C1 | Alpaca paper keys in the environment | you |
-| C2 | `fetch --source alpaca` and re-run the backtest on the broker's own feed — confirm the result survives a different data source | me |
-| C3 | Wire a real earnings calendar (§6) | you choose provider, me wire |
-| C4 | Two weeks of all four jobs with `--dry-run`, reading the decision log daily | both |
-| C5 | Drop `--dry-run`. **Change nothing for a month.** | you |
-| C6 | `python -m trading_bot report` — first real attribution | me |
+| **C1** | Alpaca paper keys | **done** — connected, $100k paper account verified |
+| **C2** | Two weeks of `--dry-run` on all four jobs, reading the decision log daily | you, ~5 min/day |
+| **C3** | Drop `--dry-run`. Six months. Change nothing. | you |
+| **C4** | `report` — the first real attribution | me, at the end |
+
+C2 can start today. The only daily requirement is that `fetch` runs **before**
+`evening`, or the evening job errors on stale data (deliberately — see §2c).
+
+### Built but not yet configured
+
+| Item | Why it matters | What it needs |
+|---|---|---|
+| Webhook alerts | Failures, tripped breakers, book changes | one URL → `TRADING_BOT_WEBHOOK` |
+| Heartbeat monitor | **The only thing that catches a job never running.** Dead code sends no alerts. | healthchecks.io free tier → `TRADING_BOT_HEARTBEAT` |
+| An always-on host | A laptop misses sessions; cron with `CRON_TZ` also fixes the DST drift Windows Task Scheduler has | ~$5/month VPS |
+
+### Not built, deliberately
+
+| Item | Why it is not done |
+|---|---|
+| `deploy/` folder (crontab, systemd unit, setup script) | Straightforward; worth doing when you commit to a host |
+| Earnings calendar | **Before real money, not before paper.** The backtest ran without it, so wiring it now would make the trial test a system that was never validated (§5d) |
+| `ADD` to a position | Three-step broker transaction (cancel OCO → add → re-place) with rollback. `decide()` never emits it; the constraint layer already validates it |
+| Fixing `regime_fit` | Known inert and unvalidated. Changing it changes the tested system — revisit only with live data (§5d) |
+| More backtesting | The historical data is exhausted. It can only produce overfitting now |
 
 ---
 
@@ -436,6 +395,36 @@ The earnings calendar is **not** wired, and that is deliberate for the trial:
 the backtest ran without it too (`NullSemanticEngine`, no `config/earnings.json`),
 so the paper trial tests the same system the 12.20% CAGR came from. Wire it
 before real money, not before paper.
+
+---
+
+## 5e. Repo audit (session 4)
+
+Removed as unused, verified by reference scan:
+
+| Removed | Why |
+|---|---|
+| `notify.payload_for_test` | 0 refs; documented a `status --test-alerts` flag that never existed |
+| `universe.sector_of` | 0 refs; `SECTORS` is read directly |
+| `BarSeries.through()` | 0 refs |
+| `Bar.range` | 0 refs |
+| `sizing.heat_contribution` | exported and tested but used by nothing — a test for dead code is still dead |
+| `ActionKind.HOLD` | never emitted; holding is the *absence* of an action, and an enum member implied otherwise |
+| `scripts/seed_demo_data.py` | superseded — Yahoo `fetch` needs no credentials, so synthetic bars have no remaining purpose |
+
+Also deduplicated: the "index and rate series are never positions" rule was
+written out in both the backtest engine and the walk-forward. Both now call
+`universe.is_tradeable`.
+
+Kept deliberately:
+
+- **`ActionKind.TRIM` / `ADD`** — not emitted yet, but the constraint layer
+  validates them and they are the documented path for position management.
+- **The `defensive` variant**, despite being an invalid test (five changes at
+  once). Deleting it would make `records/walkforward_defensive.txt`
+  unreproducible; the comment marks it as a record of the mistake.
+- **`scripts/demo.py`** — runs the decision core on a hand-built book with no
+  data, credentials or network. The fastest way to see the brain work.
 
 ---
 

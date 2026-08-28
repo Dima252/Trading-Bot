@@ -146,10 +146,10 @@ def run_walkforward(
 
     # Scan once per variant over every day any fold will touch, rather than once
     # per variant per fold.
+    from ..data.universe import is_tradeable
+
     tradeable = {
-        s: b
-        for s, b in universe.items()
-        if s != benchmark and not s.startswith("^")
+        s: b for s, b in universe.items() if s != benchmark and is_tradeable(s)
     }
     span = sorted(
         d

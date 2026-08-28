@@ -34,6 +34,7 @@ from ..core.models import (
 from ..core.policy import Policy
 from ..core.scoring import rank_candidates
 from ..data.models import BarSeries
+from ..data.universe import is_tradeable
 from ..signals.engine import MIN_HISTORY, Indicators, find_setups, scan
 from ..signals.regime import breadth_of, classify
 from .fills import FillModel, check_exit, check_exit_intraday, check_limit_fill
@@ -156,11 +157,11 @@ class Backtest:
         self.policy = policy
         self.fills = FillModel(config.slippage_bps, config.commission_per_share)
 
-        # Tradeable names exclude the benchmark and any rate series.
+        # Index and rate series are inputs, never positions.
         self.tradeable = {
             s: b
             for s, b in universe.items()
-            if s != config.benchmark and not s.startswith("^")
+            if s != config.benchmark and is_tradeable(s)
         }
         self.cash_rates = (
             universe.get(config.cash_rate_symbol)

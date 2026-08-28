@@ -25,10 +25,6 @@ class Bar:
     def dollar_volume(self) -> float:
         return self.close * self.volume
 
-    @property
-    def range(self) -> float:
-        return self.high - self.low
-
 
 @dataclass(frozen=True)
 class BarSeries:
@@ -85,10 +81,3 @@ class BarSeries:
         """Latest bar at or before `day`. The only safe lookup in a backtest."""
         i = bisect_right(self.days, day) - 1
         return i if i >= 0 else None
-
-    def through(self, day: date) -> "BarSeries":
-        """Everything up to and including `day`. Never past it."""
-        i = self.index_asof(day)
-        if i is None:
-            return BarSeries(self.symbol, [])
-        return BarSeries(self.symbol, self.bars[: i + 1])

@@ -59,10 +59,3 @@ def size_position(
         notional=qty * entry,
         binding_constraint=binding if qty > 0 else "no_capacity",
     )
-
-
-def heat_contribution(qty: int, price: float, stop: float, equity: float) -> float:
-    """Open risk this position would add, as a fraction of equity."""
-    if equity <= 0:
-        return 0.0
-    return (qty * max(0.0, price - stop)) / equity

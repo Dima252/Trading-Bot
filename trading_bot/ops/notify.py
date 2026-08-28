@@ -19,7 +19,6 @@ A notifier that can crash a trading job is worse than no notifier.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from enum import Enum
@@ -126,8 +125,3 @@ def describe_config() -> str:
             "  without a heartbeat, a job that never runs raises no alarm at all"
         )
     return "\n".join(parts)
-
-
-def payload_for_test() -> str:
-    """Used by `status --test-alerts` to prove the wiring end to end."""
-    return json.dumps({"text": "test", "content": "test"})

@@ -18,7 +18,7 @@ class ActionKind(str, Enum):
     ADD = "ADD"
     ADJUST_STOP = "ADJUST_STOP"
     CANCEL = "CANCEL"
-    HOLD = "HOLD"
+    # No HOLD: holding is the absence of an action, not one of them.
 
     @property
     def increases_risk(self) -> bool:

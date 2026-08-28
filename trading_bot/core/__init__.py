@@ -18,7 +18,7 @@ from .models import (
 )
 from .policy import Policy
 from .scoring import rank_candidates, score_candidate, score_holding
-from .sizing import Sizing, heat_contribution, size_position
+from .sizing import Sizing, size_position
 
 __all__ = [
     "Action",
@@ -38,7 +38,6 @@ __all__ = [
     "Verdict",
     "decide",
     "exit_reason",
-    "heat_contribution",
     "rank_candidates",
     "score_candidate",
     "score_holding",

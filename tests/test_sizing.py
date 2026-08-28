@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from trading_bot.core import Policy, heat_contribution, size_position
+from trading_bot.core import Policy, size_position
 
 
 def test_risk_cap_binds_on_a_wide_stop(policy: Policy) -> None:
@@ -68,11 +68,3 @@ def test_risk_stays_constant_across_stop_distances(policy: Policy) -> None:
         s = size_position(100.0, stop, 1_000_000, 1_000_000, policy)
         if s.binding_constraint == "risk_per_trade":
             assert s.risk_dollars == pytest.approx(10_000.0, rel=0.01)
-
-
-def test_heat_contribution_never_negative() -> None:
-    # stop above the market is locked-in profit, not negative exposure
-    assert heat_contribution(100, price=100.0, stop=110.0, equity=100_000) == 0.0
-    assert heat_contribution(100, price=100.0, stop=95.0, equity=100_000) == pytest.approx(
-        0.005
-    )
