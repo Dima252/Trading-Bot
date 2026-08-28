@@ -10,8 +10,8 @@ and forward plan.
 
 | | |
 |---|---|
-| Implementation | ~8,600 lines, 57 modules |
-| Tests | **287 passing**, ~21s, no network, no credentials |
+| Implementation | ~8,900 lines, 58 modules |
+| Tests | **326 passing**, ~22s, 84% coverage, `ruff` clean |
 | Market data | 887,235 daily bars, 505 symbols, 2019-07 → 2026-08 |
 | Shipping config | `config/policy.yaml` **v2-holdout** — frozen, out-of-sample tested |
 | Broker | Alpaca paper connected and verified ($100k account) |
@@ -21,7 +21,8 @@ and forward plan.
 ### What runs today
 
 ```bash
-python -m pytest -q                    # 287 tests
+python -m pytest -q                    # 326 tests
+python -m ruff check .                 # lint, incl. the datetime rules
 python scripts/demo.py                 # decision core on a hand-built book
 python -m trading_bot fetch            # real bars, no API key needed (Yahoo)
 python -m trading_bot backtest         # full report vs SPY
@@ -29,7 +30,7 @@ python -m trading_bot diagnose         # is the ranking predictive?
 python -m trading_bot walkforward      # does a change hold across periods?
 python -m trading_bot dashboard        # one self-contained HTML file
 python -m trading_bot serve            # live view + kill switch
-python -m trading_bot evening --dry-run   # decide, log, send nothing
+python -m trading_bot daily            # THE DRY RUN: fetch, scan, render
 ```
 
 The four jobs have run against the real paper account. They have **never placed
@@ -247,22 +248,36 @@ What is left is operational.
 | Step | What | Owner |
 |---|---|---|
 | **C1** | Alpaca paper keys | **done** — connected, $100k paper account verified |
-| **C2** | Two weeks of `--dry-run` on all four jobs, reading the decision log daily | you, ~5 min/day |
-| **C3** | Drop `--dry-run`. Six months. Change nothing. | you |
+| **C2** | Two weeks of `python -m trading_bot daily`, reading the decision log | you, ~5 min/day |
+| **C3** | `daily --arm`. Six months. Change nothing. | you |
 | **C4** | `report` — the first real attribution | me, at the end |
 
-C2 can start today, with two daily requirements — both now enforced by the code
-rather than left to memory (§2c):
+**Decided (2026-08-28): C2 runs on this machine**, and moves to a host once it
+is clearly working.
 
-1. **After the closing bell.** 16:00 ET is **23:00 in Israel** (22:00 in winter).
-   `evening` refuses to run earlier, because a bar exists from the opening bell
-   with a "close" that is only the last trade.
-2. **`fetch` before `evening`**, or the evening job errors on a stale cache.
+One command does the whole nightly routine, in order, stopping at the first
+failure:
 
-If a nightly 23:00 session is not realistic, that is the practical argument for
-bringing the host (below) forward rather than running C2 by hand — a box on New
-York time does this while you sleep, and missed days shrink the sample the
-stopping rule depends on.
+```bash
+python -m trading_bot daily
+```
+
+Three requirements used to be things to remember. All three are now enforced by
+the code, because each one failed silently at least once (§2c):
+
+1. **After the closing bell.** 16:00 ET is **23:00 local** (22:00 in winter).
+   `daily` refuses to do anything earlier — and refuses *before* fetching, since
+   the fetch takes minutes and its output would be discarded anyway.
+2. **`fetch` before the scan**, or the scan meets a stale cache and reports a
+   confident zero. `daily` sequences them and stops if the fetch fails.
+3. **The trading day is New York's**, not this host's. Running at 00:30 local
+   still means the previous session; it used to mean tomorrow, and tomorrow is
+   not a trading day.
+
+**The practical risk with C2 on a laptop is the 23:00 slot**, not the software.
+Fourteen consecutive late nights is a habit that breaks, and missed sessions
+shrink the sample the stopping rule depends on. If the first week feels like a
+chore, that is the signal to bring the host forward rather than to push through.
 
 ### Deployment is ready
 

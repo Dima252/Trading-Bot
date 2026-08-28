@@ -9,29 +9,38 @@ Two weeks, reading the decision log daily. You are checking that the *reasoning*
 looks sane, not the P&L. Missed days cost nothing here.
 
 ```bash
-python -m trading_bot fetch            # must precede evening
-python -m trading_bot evening --dry-run
-python -m trading_bot dashboard --out out/dashboard.html
+python -m trading_bot daily
 ```
 
-`--dry-run` decides, logs, and prints — and sends nothing to the broker.
+That is the whole thing: fetch, scan, render — in that order, stopping at the
+first failure. It sends nothing to the broker unless you pass `--arm`.
+
+The three steps used to be three commands, which invited running them out of
+order or stopping after two. Order is not cosmetic: the scanner matches session
+dates exactly, so a scan against an unrefreshed cache sees no symbols at all and
+reports a clean zero.
 
 ### Run it after the closing bell, not before
 
-**16:00 ET is 23:00 in Israel** (22:00 in winter). Both commands have to happen
-after that, and the bot now enforces it rather than trusting you to remember:
+**16:00 ET is 23:00 local** (22:00 in winter). The bot enforces this rather than
+trusting you to remember, because all three of these failed silently once:
 
-- `evening` **refuses** to run while the session is open, because a daily bar
-  exists from the opening bell with a "close" that is merely the last trade.
-  Every indicator computed from it would be fiction.
-- `fetch` warns, and re-reads the last cached session on its next run — so a
-  fetch you ran too early is repaired by running it again later, not frozen in.
+- **`daily` refuses to run before the bell** — and refuses *before* fetching,
+  since the fetch takes minutes and its output would be thrown away. A daily bar
+  exists from the opening bell with a "close" that is merely the last trade, and
+  every indicator computed from it would be fiction.
+- **A fetch run too early repairs itself.** The refresh re-reads the last cached
+  session, so running again after the close overwrites the provisional bars
+  rather than freezing them in.
+- **The trading day is New York's, not this machine's.** Running at 00:30 local
+  still means the previous session. It used to mean *tomorrow*, which is not a
+  trading day, so the run would skip and the night was lost.
 
 This bit on 2026-08-28: a fetch at 14:11 ET wrote 472 mid-session bars. Nothing
 complained, because a provisional bar and a settled one are indistinguishable.
 
 If staying up past 23:00 daily is not realistic, that is the argument for moving
-to Phase 2 sooner — a host in New York time does this while you sleep.
+to Phase 2 sooner — a host on New York time does this while you sleep.
 
 ## Phase 2 — the six-month trial (a host that stays on)
 
