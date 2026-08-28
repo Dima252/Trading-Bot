@@ -234,21 +234,112 @@ Only after A5 returns a positive verdict.
 
 ---
 
-## 5. Set the bar before you look at the results
+## 5. The bar — a defensive mandate, made concrete
 
-Written down now, while nothing is riding on it:
+**Decision taken (session 3): a defensive profile is what we want.** That
+settles the strategic question and changes what "good" means. It does NOT mean
+the bar gets lower.
 
-> A variant is worth paper trading if it beats SPY on **return-per-drawdown**,
-> **on the holdout**, without any parameter that has to be exactly right.
+### Why the current best is not good enough
 
-Current best (`both`, in-fold): positive expectancy, drawdowns of 8–12% against
-the index's 24.5%, but absolute return below SPY in 3 of 4 periods.
+`all_three` compounds to **+4.87% CAGR at a 9.17% worst drawdown** over the
+tested 4.8 years. Over that same window the 13-week T-bill averaged **2.89%**.
 
-**The strategic question only you can answer:** is a lower-drawdown,
-lower-return long-only profile something you would actually run? If the goal is
-to beat buy-and-hold, the current answer is no, and a 60/40 index-and-cash split
-gives a similar shape with no code. If the goal is a smoother ride with positive
-expectancy, it is closer than it looks.
+A defensive strategy earning ~5% while cash earned ~3% — and taking a 9%
+drawdown to do it — is not worth running. That is the real problem, and it is
+not the same problem as "doesn't beat SPY".
+
+### What it has to clear
+
+| Metric | Target | `all_three` today |
+|---|---|---|
+| CAGR | **≥ 8%** | 4.87% |
+| Max drawdown | **≤ 15%** | 9.17% |
+| Return / drawdown (annualised) | **≥ 0.7** | 0.53 |
+| Excess over cash | **≥ 4pp** | ~2pp |
+| Positive folds | **≥ 3 / 4** | 3 / 4 |
+
+Note the drawdown line: the system is **under-risked**, not over-risked. It uses
+9% of a 15% budget. For a defensive mandate that headroom is wasted capacity.
+
+### Where the missing return is — three diagnosed causes
+
+1. **Idle cash earned nothing.** The backtest paid 0% while the strategy sat in
+   cash most of the time. Fixed: `^IRX` is now cached and accrued daily. This is
+   a correctness fix, not an optimisation.
+2. **The risk budget is half-used.** 1% risk per trade and a 6% heat cap produce
+   a 9% drawdown against a 15% tolerance. Scaling risk scales return roughly
+   proportionally and stays inside the envelope.
+3. **The regime gate shuts the book 54% of the time for a thin edge.** Measured
+   over the tested window: SPY's forward 20-day return is **+0.98% on chop days
+   vs +1.24% on trend days** — and `high_vol` days, which the gate also blocks,
+   were the *best* forward periods at +2.84%. The gate lifts per-trade
+   expectancy but may cost more in unused capital than it saves. Tested both
+   ways as `defensive` and `defensive_open`.
+
+## 5b. Session 3 result — the bar is met, with caveats
+
+Two fixes and two refutations, then one clean test.
+
+| Variant | CAGR | worst DD | ret/DD | vs cash | criteria |
+|---|---|---|---|---|---|
+| `all_three` (cash yield on) | 6.87% | 8.03% | 0.86 | +3.98pp | 3/5 |
+| **`risk_1p6`** (1.6× envelope) | **8.09%** | **7.97%** | **1.01** | **+5.20pp** | **5/5** |
+
+*(SPY over the same window: ~16% CAGR at 24.5% drawdown, ret/DD 0.65.)*
+
+### What worked
+
+**Cash now earns the T-bill rate.** A correctness fix, not an optimisation —
+the backtest paid 0% on idle cash while the strategy sat in cash most of the
+time. Worth ~2pp of CAGR on its own.
+
+**Scaling the whole risk envelope 1.6×** (risk 1.6%, heat 9.6%, position cap
+24%) — one coherent change, nothing else touched.
+
+### What was refuted
+
+**Removing the regime gate is worse.** `defensive_open` won 2/4 folds — "likely
+luck". Despite SPY's forward return barely differing by regime label, the gate
+earns its keep on the setups we actually trade.
+
+**`defensive` bundled five changes at once and is therefore uninformative.**
+That violates rule 3 in §7 and it was my error. The tell: R multiples are
+size-invariant, so a pure sizing change leaves expectancy alone. Expectancy fell
+from +0.155 to +0.039, which means selection changed — most likely the pullback
+reweighting, not the sizing. Kept in the code as a record of the mistake.
+
+### Three reasons not to trust 5/5 yet
+
+1. **It is not a pure sizing change.** Expectancy fell +0.155 → +0.122 and fold
+   consistency 4/4 → 3/4. Bigger positions hit the capacity caps, so fewer
+   trades are taken (78→61, 98→69). The book is more concentrated, which is the
+   opposite of what a defensive mandate wants.
+2. **The drawdown did not scale, and it should have.** 1.6× the risk should give
+   roughly 1.6× the drawdown (8.0% → ~12.8%). It stayed at 8.0%. An unexplained
+   free lunch in a backtest is usually a warning, not a discovery.
+3. **Eight variants have now been tested against the same four folds.** Finding
+   one that clears a five-part bar after eight attempts is weak evidence. This
+   is exactly the multiple-comparison problem §7 warns about.
+
+### Therefore: stop tuning
+
+Further variants make the in-fold evidence weaker, not stronger. The holdout
+(2025-06-11 → 2026-08-27) exists for precisely this moment.
+
+**Proposed, needing approval:** run `risk_1p6` AND `all_three` on the holdout,
+once, reporting both. Decision rule fixed in advance — `risk_1p6` is the primary
+candidate because it met the bar; `all_three` is the reference. If `risk_1p6`
+fails the holdout while `all_three` holds, that is evidence `risk_1p6` was
+fitted to the folds.
+
+### If the holdout disappoints, the next lever is structural, not parametric
+
+With the regime gate on and only 85 names, `all_three` takes 78–98 trades per
+fold against baseline's 216–229 — it is starved of candidates exactly when it is
+allowed to trade. Widening to ~400 liquid names gives a deeper pool to select
+from and more opportunities during the 46% of days the gate is open. Yahoo
+fetching is free; it is a ticker-list change and a longer backtest.
 
 ---
 

@@ -79,8 +79,13 @@ def detect(
     favour_shallow = bool(policy and getattr(policy, "pullback_favour_shallow", False))
     reset_score = (1.0 - reset) if favour_shallow else reset
     depth_score = (1.0 - depth) if favour_shallow else depth
+    w_trend = getattr(policy, "pullback_w_trend", 0.40) if policy else 0.40
+    w_reset = getattr(policy, "pullback_w_reset", 0.35) if policy else 0.35
+    w_depth = getattr(policy, "pullback_w_depth", 0.25) if policy else 0.25
+    total = (w_trend + w_reset + w_depth) or 1.0
     quality = 40.0 + 60.0 * (
-        0.40 * trend_score + 0.35 * reset_score + 0.25 * depth_score
+        (w_trend * trend_score + w_reset * reset_score + w_depth * depth_score)
+        / total
     )
 
     return Candidate(

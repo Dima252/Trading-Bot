@@ -15,6 +15,11 @@ from .models import BarSeries
 
 BENCHMARK = "SPY"
 
+# 13-week T-bill discount rate. Not tradeable -- it is what idle cash earns.
+# A backtest that pays 0% on cash badly understates a strategy that is only
+# deployed part of the time, which is exactly what a defensive profile is.
+CASH_RATE = "^IRX"
+
 # Liquid US large caps with a broad sector spread. Sector labels are the
 # coarse GICS-style buckets the exposure cap operates on; precision beyond
 # this does not change any decision.
@@ -64,7 +69,13 @@ DEFAULT_UNIVERSE: list[str] = sorted(SECTORS)
 
 
 def all_symbols(include_benchmark: bool = True) -> list[str]:
-    return ([BENCHMARK] if include_benchmark else []) + DEFAULT_UNIVERSE
+    extras = [BENCHMARK, CASH_RATE] if include_benchmark else []
+    return extras + DEFAULT_UNIVERSE
+
+
+def is_tradeable(symbol: str) -> bool:
+    """Index and rate series are inputs, never positions."""
+    return not symbol.startswith("^") and symbol != BENCHMARK
 
 
 def sector_of(symbol: str) -> str:

@@ -135,6 +135,7 @@ def run_walkforward(
     baseline: str = "baseline",
     benchmark: str = "SPY",
     starting_equity: float = 100_000.0,
+    cash_rate_symbol: str | None = None,
     progress: bool = True,
 ) -> WalkForward:
     out = WalkForward(baseline=baseline, folds=folds)
@@ -154,6 +155,7 @@ def run_walkforward(
                     # the shadow book dominates runtime and answers a different
                     # question; a variant comparison does not need it
                     record_shadow=False,
+                    cash_rate_symbol=cash_rate_symbol,
                 ),
                 policy,
             )

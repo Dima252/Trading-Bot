@@ -1,0 +1,73 @@
+4 folds x 4 variants over 91 symbols
+holding out 2025-06-11 -> 2026-08-27 -- untouched by every run below
+
+  F1 2020-08-19 -> 2021-10-28  baseline...
+  F1 2020-08-19 -> 2021-10-28  all_three...
+  F1 2020-08-19 -> 2021-10-28  defensive...
+  F1 2020-08-19 -> 2021-10-28  defensive_open...
+  F2 2021-10-29 -> 2023-01-11  baseline...
+  F2 2021-10-29 -> 2023-01-11  all_three...
+  F2 2021-10-29 -> 2023-01-11  defensive...
+  F2 2021-10-29 -> 2023-01-11  defensive_open...
+  F3 2023-01-12 -> 2024-03-26  baseline...
+  F3 2023-01-12 -> 2024-03-26  all_three...
+  F3 2023-01-12 -> 2024-03-26  defensive...
+  F3 2023-01-12 -> 2024-03-26  defensive_open...
+  F4 2024-03-27 -> 2025-06-10  baseline...
+  F4 2024-03-27 -> 2025-06-10  all_three...
+  F4 2024-03-27 -> 2025-06-10  defensive...
+  F4 2024-03-27 -> 2025-06-10  defensive_open...
+
+==============================================================================
+WALK-FORWARD
+==============================================================================
+  4 folds, 4 variants
+    F1  2020-08-19 -> 2021-10-28
+    F2  2021-10-29 -> 2023-01-11
+    F3  2023-01-12 -> 2024-03-26
+    F4  2024-03-27 -> 2025-06-10
+    HOLDOUT  2025-06-11 -> 2026-08-27  (untouched)
+
+  baseline
+    fold    trades   exp R   win%   return   vs SPY   maxDD    bmDD  ret/DD    bm   bar
+    F1         216   0.041  38.0%   10.53%  -27.84%   8.95%   9.44%    1.18  4.06   fail
+    F2         223  -0.132  35.0%   -9.12%   +3.05%  16.92%  24.50%   -0.54 -0.50   fail
+    F3         221  -0.079  34.4%   -2.81%  -35.90%  16.13%   9.97%   -0.17  3.32   fail
+    F4         229  -0.029  39.3%   -2.07%  -18.81%  14.13%  18.76%   -0.15  0.89   fail
+           clears the PLAN section 5 bar in 0/4 folds
+
+  all_three
+    fold    trades   exp R   win%   return   vs SPY   maxDD    bmDD  ret/DD    bm   bar
+    F1          78   0.461  44.9%   17.06%  -21.31%   5.28%   9.44%    3.23  4.06   fail
+    F2          40  -0.110  27.5%   -1.10%  +11.07%   8.03%  24.50%   -0.14 -0.50   PASS
+    F3          86   0.142  41.9%    5.33%  -27.76%   6.82%   9.97%    0.78  3.32   fail
+    F4          98   0.127  35.7%   12.87%   -3.87%   7.21%  18.76%    1.79  0.89   PASS
+           clears the PLAN section 5 bar in 2/4 folds
+
+  defensive
+    fold    trades   exp R   win%   return   vs SPY   maxDD    bmDD  ret/DD    bm   bar
+    F1          68   0.330  44.1%   17.08%  -21.29%   5.81%   9.44%    2.94  4.06   fail
+    F2          24  -0.448  20.8%   -6.36%   +5.81%   9.08%  24.50%   -0.70 -0.50   fail
+    F3          72   0.220  45.8%    8.18%  -24.91%   6.35%   9.97%    1.29  3.32   fail
+    F4          85   0.055  35.3%    5.21%  -11.53%   7.77%  18.76%    0.67  0.89   fail
+           clears the PLAN section 5 bar in 0/4 folds
+
+  defensive_open
+    fold    trades   exp R   win%   return   vs SPY   maxDD    bmDD  ret/DD    bm   bar
+    F1         131   0.141  40.5%   14.73%  -23.64%  10.10%   9.44%    1.46  4.06   fail
+    F2         120  -0.175  30.8%   -8.56%   +3.61%  14.38%  24.50%   -0.60 -0.50   fail
+    F3         107   0.278  41.1%   17.89%  -15.20%   7.71%   9.97%    2.32  3.32   fail
+    F4         126  -0.083  33.3%   -8.23%  -24.97%  16.83%  18.76%   -0.49  0.89   fail
+           clears the PLAN section 5 bar in 0/4 folds
+
+  verdicts
+    variant                 folds won  mean exp R   vs base   conclusion
+    baseline                        -      -0.050    +0.000   reference
+    all_three                     4/4       0.155    +0.205   held in EVERY fold -- worth testing on the holdout
+    defensive                     3/4       0.039    +0.089   held in most folds -- promising
+    defensive_open                2/4       0.040    +0.090   improved on aggregate but NOT consistently -- likely luck
+
+  Consistency is the test, not the aggregate. A variant that wins
+  on the total but only in one fold is a fitted result wearing a
+  disguise. Nothing here has touched the holdout.
+==============================================================================

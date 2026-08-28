@@ -135,3 +135,38 @@ def test_no_lookahead_across_many_bars() -> None:
         assert find_setups(full, ind_full, i, "X") == find_setups(
             truncated, Indicators.compute(truncated), i, "X"
         )
+
+
+# --- pullback quality weights are policy, so they can be validated -------- #
+
+
+def test_pullback_weights_shift_the_quality_score() -> None:
+    from trading_bot.core.policy import Policy
+
+    series = pullback_series()
+    ind = Indicators.compute(series)
+    i = len(series) - 1
+
+    even = find_setups(series, ind, i, "X", Policy())[0]
+    rsi_heavy = find_setups(
+        series, ind, i, "X",
+        Policy(pullback_w_trend=0.2, pullback_w_reset=0.5, pullback_w_depth=0.3),
+    )[0]
+
+    assert even.setup_quality != rsi_heavy.setup_quality
+    assert 40.0 <= rsi_heavy.setup_quality <= 100.0
+
+
+def test_pullback_weights_are_normalised() -> None:
+    """Weights that do not sum to 1 must not push quality outside its range."""
+    from trading_bot.core.policy import Policy
+
+    series = pullback_series()
+    ind = Indicators.compute(series)
+    i = len(series) - 1
+
+    c = find_setups(
+        series, ind, i, "X",
+        Policy(pullback_w_trend=2.0, pullback_w_reset=5.0, pullback_w_depth=3.0),
+    )[0]
+    assert 40.0 <= c.setup_quality <= 100.0

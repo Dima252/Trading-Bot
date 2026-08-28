@@ -270,3 +270,85 @@ def test_no_trade_reports_an_absurd_r(market) -> None:
         assert -20.0 < trade.realized_r < 20.0
         assert -20.0 < trade.mfe_r < 20.0
         assert -20.0 < trade.mae_r < 20.0
+
+
+# --- idle cash must earn the risk-free rate ------------------------------- #
+
+
+def rate_series(days, annual_pct: float) -> BarSeries:
+    return BarSeries(
+        "^IRX",
+        [
+            Bar(d, annual_pct, annual_pct, annual_pct, annual_pct, 0.0)
+            for d in days
+        ],
+    )
+
+
+def test_idle_cash_earns_interest(market) -> None:
+    """A backtest paying 0% on cash badly understates any strategy that is only
+    deployed part of the time -- which is what a defensive profile is."""
+    universe, sectors = market
+    days = universe["SPY"].days
+    with_rate = dict(universe)
+    with_rate["^IRX"] = rate_series(days, 5.0)
+
+    cfg = config_for(universe)
+    flat = run_backtest(universe, sectors, cfg)
+    paid = run_backtest(
+        with_rate,
+        sectors,
+        BacktestConfig(
+            start=cfg.start, end=cfg.end, starting_equity=cfg.starting_equity,
+            cash_rate_symbol="^IRX",
+        ),
+    )
+    assert paid.final_equity > flat.final_equity
+
+
+def test_no_rate_series_means_no_interest(market) -> None:
+    universe, sectors = market
+    a = run_backtest(universe, sectors, config_for(universe))
+    cfg = config_for(universe)
+    b = run_backtest(
+        universe,
+        sectors,
+        BacktestConfig(
+            start=cfg.start, end=cfg.end, starting_equity=cfg.starting_equity,
+            cash_rate_symbol="^IRX",  # named but absent from the universe
+        ),
+    )
+    assert a.final_equity == pytest.approx(b.final_equity)
+
+
+def test_a_rate_series_is_never_traded(market) -> None:
+    """An index or rate series is an input, never a position."""
+    from trading_bot.backtest.engine import Backtest
+
+    universe, sectors = market
+    with_rate = dict(universe)
+    with_rate["^IRX"] = rate_series(universe["SPY"].days, 5.0)
+
+    bt = Backtest(with_rate, sectors, config_for(universe), Policy())
+    assert "^IRX" not in bt.tradeable
+    assert "SPY" not in bt.tradeable
+
+
+def test_a_zero_rate_pays_nothing(market) -> None:
+    from trading_bot.backtest.engine import Backtest
+
+    universe, sectors = market
+    with_rate = dict(universe)
+    with_rate["^IRX"] = rate_series(universe["SPY"].days, 0.0)
+    cfg = config_for(universe)
+    bt = Backtest(
+        with_rate,
+        sectors,
+        BacktestConfig(
+            start=cfg.start, end=cfg.end, starting_equity=cfg.starting_equity,
+            cash_rate_symbol="^IRX",
+        ),
+        Policy(),
+    )
+    bt.run()
+    assert bt.interest_earned == 0.0

@@ -92,7 +92,7 @@ def cmd_fetch(args) -> int:
 def cmd_backtest(args) -> int:
     from .backtest.engine import BacktestConfig, run_backtest
     from .backtest.metrics import build_report, format_report
-    from .data.universe import BENCHMARK, SECTORS
+    from .data.universe import BENCHMARK, CASH_RATE, SECTORS
     from .signals.engine import MIN_HISTORY
 
     cache = BarCache(args.bars)
@@ -109,6 +109,7 @@ def cmd_backtest(args) -> int:
         starting_equity=args.equity,
         benchmark=BENCHMARK,
         slippage_bps=args.slippage,
+        cash_rate_symbol=CASH_RATE if CASH_RATE in universe else None,
     )
     print(f"backtesting {len(universe) - 1} symbols, {start} -> {args.day}\n")
 
@@ -171,13 +172,67 @@ def _variants(base: Policy) -> dict[str, Policy]:
         "trend_only": base.with_changes(
             version=f"{base.version}-trendonly", tradeable_regimes=["trend"]
         ),
-        # all three corrections together -- the candidate for the holdout
+        # all three corrections together
         "all_three": base.with_changes(
             version=f"{base.version}-all3",
             pullback_favour_shallow=True,
             time_stop_days=40,
             max_hold_days=60,
             tradeable_regimes=["trend"],
+        ),
+        # ONE change against all_three: scale the whole risk envelope by 1.6x.
+        # all_three uses ~8% of a 15% drawdown tolerance, so the budget is half
+        # spent. R multiples are size-invariant, so if this is purely a sizing
+        # change expectancy should be UNCHANGED and returns should scale.
+        # Expectancy moving is the tell that something else changed.
+        "risk_1p6": base.with_changes(
+            version=f"{base.version}-risk16",
+            pullback_favour_shallow=True,
+            time_stop_days=40,
+            max_hold_days=60,
+            tradeable_regimes=["trend"],
+            max_risk_per_trade=0.016,
+            max_portfolio_heat=0.096,
+            max_position_pct=0.24,
+        ),
+        # NOTE: `defensive` below bundles five changes at once (risk envelope AND
+        # the pullback weights) and its result is therefore uninformative about
+        # which one mattered -- it violates rule 3 in PLAN section 7. Kept only
+        # as a record of that mistake.
+        # all_three earns +4.87% CAGR at a 9.17% worst drawdown -- it leaves
+        # most of a defensive risk budget unused, and cash-like returns are not
+        # worth running a bot for. Scale risk to fill the envelope and put the
+        # weight on the one validated selection feature.
+        "defensive": base.with_changes(
+            version=f"{base.version}-def",
+            pullback_favour_shallow=True,
+            time_stop_days=40,
+            max_hold_days=60,
+            tradeable_regimes=["trend"],
+            max_risk_per_trade=0.0175,
+            max_portfolio_heat=0.10,
+            max_position_pct=0.20,
+            max_new_positions_per_day=4,
+            pullback_w_trend=0.20,
+            pullback_w_reset=0.50,
+            pullback_w_depth=0.30,
+        ),
+        # The regime gate improves per-trade expectancy but shuts the book 54%
+        # of the time, and SPY's forward 20-day return barely differs by regime
+        # label (chop +0.98% vs trend +1.24%). Hypothesis: for total return the
+        # gate is net negative even though it flatters expectancy.
+        "defensive_open": base.with_changes(
+            version=f"{base.version}-defopen",
+            pullback_favour_shallow=True,
+            time_stop_days=40,
+            max_hold_days=60,
+            max_risk_per_trade=0.0175,
+            max_portfolio_heat=0.10,
+            max_position_pct=0.20,
+            max_new_positions_per_day=4,
+            pullback_w_trend=0.20,
+            pullback_w_reset=0.50,
+            pullback_w_depth=0.30,
         ),
     }
 
@@ -188,7 +243,7 @@ def cmd_walkforward(args) -> int:
         make_folds,
         run_walkforward,
     )
-    from .data.universe import BENCHMARK, SECTORS
+    from .data.universe import BENCHMARK, CASH_RATE, SECTORS
     from .signals.engine import MIN_HISTORY
 
     cache = BarCache(args.bars)
@@ -198,6 +253,8 @@ def cmd_walkforward(args) -> int:
         return 1
 
     universe = cache.load_many(symbols, min_bars=MIN_HISTORY)
+    if CASH_RATE not in universe:
+        print(f"note: no {CASH_RATE} cached -- idle cash will earn 0%")
     folds, holdout = make_folds(
         universe[BENCHMARK].days, n_folds=args.folds, holdout=not args.no_holdout
     )
@@ -212,7 +269,10 @@ def cmd_walkforward(args) -> int:
         print(f"holding out {holdout.span} -- untouched by every run below")
     print()
 
-    wf = run_walkforward(universe, dict(SECTORS), variants, folds, benchmark=BENCHMARK)
+    wf = run_walkforward(
+        universe, dict(SECTORS), variants, folds, benchmark=BENCHMARK,
+        cash_rate_symbol=CASH_RATE,
+    )
     wf.holdout = holdout
     print()
     print(format_walkforward(wf))

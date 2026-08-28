@@ -51,6 +51,8 @@ class BacktestConfig:
     commission_per_share: float = 0.0
     shadow_max_days: int = 40
     record_shadow: bool = True
+    # Symbol carrying the annualised cash rate (percent), e.g. "^IRX".
+    cash_rate_symbol: str | None = None
 
 
 @dataclass
@@ -120,10 +122,18 @@ class Backtest:
         self.policy = policy
         self.fills = FillModel(config.slippage_bps, config.commission_per_share)
 
-        # Tradeable names exclude the benchmark itself.
+        # Tradeable names exclude the benchmark and any rate series.
         self.tradeable = {
-            s: b for s, b in universe.items() if s != config.benchmark
+            s: b
+            for s, b in universe.items()
+            if s != config.benchmark and not s.startswith("^")
         }
+        self.cash_rates = (
+            universe.get(config.cash_rate_symbol)
+            if config.cash_rate_symbol
+            else None
+        )
+        self.interest_earned = 0.0
         self.indicators: dict[str, Indicators] = {
             s: Indicators.compute(b) for s, b in universe.items()
         }
@@ -149,6 +159,7 @@ class Backtest:
         ]
 
         for day in days:
+            self._accrue_interest(day)
             self._fill_resting_orders(day)
             self._process_exits(day)
             context = self._context(day, benchmark)
@@ -164,6 +175,25 @@ class Backtest:
         return self.result
 
     # ------------------------------------------------------------------ #
+
+    def _accrue_interest(self, day: date) -> None:
+        """One session of interest on the idle balance.
+
+        Without this the backtest silently assumes cash yields nothing, which
+        over this window means giving away most of what a defensive profile
+        would actually have earned.
+        """
+        if self.cash_rates is None or self.cash <= 0:
+            return
+        i = self.cash_rates.index_asof(day)
+        if i is None:
+            return
+        annual = self.cash_rates[i].close / 100.0
+        if annual <= 0:
+            return
+        interest = self.cash * annual / 252.0
+        self.cash += interest
+        self.interest_earned += interest
 
     def _fill_resting_orders(self, day: date) -> None:
         """DAY orders: they fill today or they die."""

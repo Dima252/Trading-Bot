@@ -74,6 +74,14 @@ class Policy:
     # hypothesis can be tested out of sample rather than assumed.
     pullback_favour_shallow: bool = False
 
+    # Sub-weights inside the pullback quality score. The diagnostic measured
+    # rsi at z=+16.4 and depth at z=-12.1 over 24k candidates, while the trend
+    # spread came in at z=+2.2 -- so the weight belongs on the RSI reset, not
+    # spread across three inputs as if they were equally informative.
+    pullback_w_trend: float = 0.40
+    pullback_w_reset: float = 0.35
+    pullback_w_depth: float = 0.25
+
     # --- scoring weights (w_setup + w_regime + w_rr must sum to 1.0) ---
     w_setup: float = 0.60
     w_regime: float = 0.20
