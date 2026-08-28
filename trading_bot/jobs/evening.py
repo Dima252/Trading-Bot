@@ -16,6 +16,7 @@ from ..backtest.simulate import simulate_forward
 from ..core.decide import decide
 from ..core.scoring import rank_candidates
 from ..data.universe import BENCHMARK, liquidity_screen
+from ..market_hours import SESSION_CLOSE, now_exchange, session_is_final
 from ..signals.engine import MIN_HISTORY, Indicators, scan
 from ..signals.regime import breadth_of, classify
 from .base import AgentContext, JobResult, constrain, run_job
@@ -29,6 +30,23 @@ def run(ctx: AgentContext) -> JobResult:
 
 
 def _body(ctx: AgentContext, result: JobResult, recon, run_id: int) -> None:
+    # First, and before loading 500 days of history for 500 symbols: if the
+    # session has not closed, nothing downstream can be trusted. A bar exists
+    # from the opening bell onward with a "close" that is only the last trade,
+    # and the staleness guard further down cannot tell the difference -- the bar
+    # is present, so it passes. The two failures also want opposite responses:
+    # a stale cache says "run fetch", an open session says "do not run fetch
+    # yet", because fetching now is what stores the provisional bar.
+    if not session_is_final(ctx.day):
+        result.status = "error"
+        result.note(
+            f"SESSION STILL OPEN: {ctx.day} has not closed "
+            f"({now_exchange():%H:%M} ET, bell at {SESSION_CLOSE:%H:%M}). "
+            "Scanning now would price today off a moving quote. Wait for the "
+            "close, then run `fetch` and re-run this job."
+        )
+        return
+
     start = ctx.day - timedelta(days=LOOKBACK_DAYS)
     symbols = ctx.cache.symbols()
     universe = ctx.cache.load_many(symbols, start, ctx.day, min_bars=MIN_HISTORY)

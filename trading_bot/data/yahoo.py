@@ -26,7 +26,7 @@ import logging
 import time
 from datetime import date, datetime, timedelta, timezone
 
-from .cache import BarCache
+from .cache import OVERLAP_DAYS, BarCache
 from .models import Bar, BarSeries
 
 log = logging.getLogger("trading_bot.yahoo")
@@ -179,13 +179,14 @@ def refresh_cache(
     for i, symbol in enumerate(symbols, 1):
         from_day = start
         if incremental:
-            gap = cache.missing_since(symbol, end)
-            if cache.coverage(symbol) is not None:
-                if gap is None:
-                    if progress:
-                        print(f"  [{i}/{len(symbols)}] {symbol:<6} up to date")
-                    continue
-                from_day = gap - timedelta(days=5)  # small overlap, upserts anyway
+            cov = cache.coverage(symbol)
+            if cov is not None:
+                # Deliberately no "already up to date, skip" branch. Coverage
+                # reaching `end` is not evidence the last bar is any good -- a
+                # fetch during market hours stores a provisional close and moves
+                # coverage forward, and skipping on that basis would freeze the
+                # bad bar in place permanently.
+                from_day = cov[1] - timedelta(days=OVERLAP_DAYS)
 
         try:
             series = client.fetch_one(symbol, from_day, end)

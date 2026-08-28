@@ -84,6 +84,8 @@ def cmd_fetch(args) -> int:
     """
     from .data.universe import all_symbols
 
+    from .market_hours import SESSION_CLOSE, now_exchange, session_is_final
+
     cache = BarCache(args.bars)
     symbols = all_symbols()
     start = args.day - timedelta(days=args.days)
@@ -91,6 +93,16 @@ def cmd_fetch(args) -> int:
         f"fetching {len(symbols)} symbols from {start} to {args.day} "
         f"via {args.source}"
     )
+    if not session_is_final(args.day):
+        # Not fatal: the refresh re-reads the last cached session, so running
+        # again after the bell overwrites whatever is stored now. Worth saying
+        # out loud anyway, because the bar looks identical either way and
+        # `evening` will refuse to scan until the session has settled.
+        print(
+            f"  note: {args.day} is still open ({now_exchange():%H:%M} ET, bell "
+            f"at {SESSION_CLOSE:%H:%M}). Today's bars will be provisional -- "
+            "re-run this after the close."
+        )
     print()
 
     if args.source == "yahoo":

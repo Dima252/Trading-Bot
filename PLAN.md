@@ -137,6 +137,55 @@ close-confirmation path could never actually open a position. Fixed; guarded by
 
 ---
 
+## 2c. Data integrity — the two guards on the cache
+
+Both failures are silent by nature: the cache looks fine in every case, and the
+scan returns a plausible-looking answer. They are recorded here because neither
+is discoverable by reading the code that suffers from them.
+
+### Guard 1 — a stale cache (found session 4)
+
+The scanner matches bars to the session date **exactly**, so a cache not
+refreshed past today makes every symbol invisible and the scan returns a clean
+zero. Indistinguishable in the logs from "a quiet market", and over months it
+would read as one. `evening` now errors instead.
+
+### Guard 2 — a provisional bar (found 2026-08-28, live)
+
+Worse than guard 1, because guard 1 does not catch it. **A daily bar exists from
+the opening bell onward, and its "close" is just the last trade.** Nothing in the
+payload marks it as unsettled — a bar fetched at 14:00 is byte-identical in shape
+to one fetched at 18:00. The staleness guard passes, because a bar *is* present.
+
+What actually happened: a `fetch` started at 14:11 ET wrote 472 mid-session bars
+for 2026-08-28. Two compounding defects:
+
+| Defect | Consequence |
+|---|---|
+| `evening` trusted any present bar | Would have scanned 505 names off moving quotes and written a watchlist from fiction |
+| Incremental refresh skipped symbols whose coverage already reached `end` (Yahoo), or started tails at `last + 1 day` (Alpaca — **zero overlap**) | No later fetch would ever revisit that day. The bad bar was **permanent** |
+
+Fixed on all three counts:
+
+- `trading_bot/market_hours.py` — `session_is_final(day)`, exchange-clock aware,
+  so the verdict does not depend on the host's timezone (it is UTC+3 here).
+- `evening` refuses to run before the bell, as its **first** check, ahead of the
+  500-day universe load.
+- Both refresh paths re-read from `last_cached - OVERLAP_DAYS`. There is
+  deliberately **no** "already up to date, skip" branch: coverage reaching `end`
+  is not evidence the last bar is any good. Stores are upserts, so re-running
+  after the close repairs the day.
+
+The 472 rows were deleted and coverage rolled back to 2026-08-27; a backup sits
+at `data/bars.db.bak`. `tests/test_market_hours.py` pins all of it.
+
+**The general lesson, and the reason this is in the plan rather than a commit
+message:** every "do we have the data?" check in this system was a presence
+check. Presence was never the question — *settledness* was. Worth asking of any
+guard added later.
+
+---
+
 ## 3. The decision that was open, and how it resolved
 
 Kept because the reasoning matters more than the outcome.
@@ -170,8 +219,18 @@ What is left is operational.
 | **C3** | Drop `--dry-run`. Six months. Change nothing. | you |
 | **C4** | `report` — the first real attribution | me, at the end |
 
-C2 can start today. The only daily requirement is that `fetch` runs **before**
-`evening`, or the evening job errors on stale data (deliberately — see §2c).
+C2 can start today, with two daily requirements — both now enforced by the code
+rather than left to memory (§2c):
+
+1. **After the closing bell.** 16:00 ET is **23:00 in Israel** (22:00 in winter).
+   `evening` refuses to run earlier, because a bar exists from the opening bell
+   with a "close" that is only the last trade.
+2. **`fetch` before `evening`**, or the evening job errors on a stale cache.
+
+If a nightly 23:00 session is not realistic, that is the practical argument for
+bringing the host (below) forward rather than running C2 by hand — a box on New
+York time does this while you sleep, and missed days shrink the sample the
+stopping rule depends on.
 
 ### Deployment is ready
 

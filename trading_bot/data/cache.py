@@ -13,6 +13,14 @@ from pathlib import Path
 
 from .models import Bar, BarSeries
 
+# How far back an incremental refresh re-reads before its last stored bar.
+#
+# The last cached day is the one most likely to be wrong: if any fetch ran while
+# the market was open, that bar's "close" is a mid-session quote. Re-reading it
+# is what makes "run fetch again after the bell" actually repair the day. Stores
+# are upserts, so the overlap costs bandwidth and nothing else.
+OVERLAP_DAYS = 5
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS bars (
     symbol  TEXT NOT NULL,
@@ -132,13 +140,6 @@ class BarCache:
         if not row:
             return None
         return date.fromisoformat(row[0]), date.fromisoformat(row[1])
-
-    def missing_since(self, symbol: str, through: date) -> date | None:
-        """Where an incremental refresh should start, or None if already current."""
-        cov = self.coverage(symbol)
-        if cov is None:
-            return None
-        return cov[1] if cov[1] < through else None
 
     def stats(self) -> dict[str, int]:
         bars = self.conn.execute("SELECT COUNT(*) FROM bars").fetchone()[0]

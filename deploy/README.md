@@ -16,6 +16,23 @@ python -m trading_bot dashboard --out out/dashboard.html
 
 `--dry-run` decides, logs, and prints — and sends nothing to the broker.
 
+### Run it after the closing bell, not before
+
+**16:00 ET is 23:00 in Israel** (22:00 in winter). Both commands have to happen
+after that, and the bot now enforces it rather than trusting you to remember:
+
+- `evening` **refuses** to run while the session is open, because a daily bar
+  exists from the opening bell with a "close" that is merely the last trade.
+  Every indicator computed from it would be fiction.
+- `fetch` warns, and re-reads the last cached session on its next run — so a
+  fetch you ran too early is repaired by running it again later, not frozen in.
+
+This bit on 2026-08-28: a fetch at 14:11 ET wrote 472 mid-session bars. Nothing
+complained, because a provisional bar and a settled one are indistinguishable.
+
+If staying up past 23:00 daily is not realistic, that is the argument for moving
+to Phase 2 sooner — a host in New York time does this while you sleep.
+
 ## Phase 2 — the six-month trial (a host that stays on)
 
 ```bash

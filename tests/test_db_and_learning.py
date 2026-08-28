@@ -50,15 +50,6 @@ def test_bar_cache_is_idempotent(tmp_path) -> None:
     assert len(cache.load("AAA")) == 5
 
 
-def test_bar_cache_reports_where_a_refresh_should_resume(tmp_path) -> None:
-    cache = BarCache(tmp_path / "bars.db")
-    bars = [Bar(DAY + timedelta(days=i), 10, 11, 9, 10.5, 1) for i in range(3)]
-    cache.store(BarSeries("AAA", bars))
-    assert cache.missing_since("AAA", DAY + timedelta(days=10)) == bars[-1].day
-    assert cache.missing_since("AAA", bars[-1].day) is None
-    assert cache.missing_since("NOPE", DAY) is None
-
-
 # --- candidates ----------------------------------------------------------- #
 
 

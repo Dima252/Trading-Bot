@@ -14,7 +14,7 @@ from __future__ import annotations
 import os
 from datetime import date, timedelta
 
-from .cache import BarCache
+from .cache import OVERLAP_DAYS, BarCache
 from .models import Bar, BarSeries
 
 KEY_ENV = "APCA_API_KEY_ID"
@@ -131,11 +131,14 @@ def refresh_cache(
     full: list[str] = []
     tails: dict[date, list[str]] = {}
     for symbol in symbols:
-        gap = cache.missing_since(symbol, end) if incremental else None
-        if not incremental or cache.coverage(symbol) is None:
+        cov = cache.coverage(symbol) if incremental else None
+        if cov is None:
             full.append(symbol)
-        elif gap is not None:
-            tails.setdefault(gap + timedelta(days=1), []).append(symbol)
+        else:
+            # From `last - OVERLAP`, not `last + 1`. Starting after the last
+            # stored bar never revisits it, so a bar cached mid-session keeps its
+            # provisional close forever and no later fetch can repair it.
+            tails.setdefault(cov[1] - timedelta(days=OVERLAP_DAYS), []).append(symbol)
 
     def pull(batch: list[str], from_day: date) -> None:
         for i in range(0, len(batch), batch_size):

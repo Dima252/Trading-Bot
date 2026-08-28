@@ -110,6 +110,21 @@ def test_unfilled_entries_land_in_the_shadow_book(ctx) -> None:
     assert rows[0]["ticker"] == "S00"
 
 
+def test_evening_refuses_a_session_that_has_not_closed(ctx) -> None:
+    """The provisional-bar guard.
+
+    A bar exists from the opening bell, so the staleness check passes and the
+    scan proceeds against a close that is really a moving quote. A future date
+    stands in for "today, mid-session": both are sessions that have not settled.
+    """
+    future = date(2027, 6, 16)
+    assert future.weekday() < 5
+    result = evening.run(replace(ctx, day=future))
+
+    assert result.status == "error"
+    assert "SESSION STILL OPEN" in " ".join(result.notes)
+
+
 def test_evening_skips_a_non_session_day(ctx) -> None:
     saturday = date(2026, 3, 7)
     assert saturday.weekday() == 5
