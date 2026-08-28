@@ -423,6 +423,68 @@ def cmd_job(args) -> int:
     return 0 if result.status in ("ok", "skipped") else 1
 
 
+def cmd_daily(args) -> int:
+    """The nightly routine as one command: fetch, think, render.
+
+    This is what the dry run actually consists of, and running it as three
+    separate commands invites two failure modes -- doing them out of order, and
+    doing only the first two. Order matters: the scanner matches session dates
+    exactly, so `evening` against an unrefreshed cache sees nothing at all.
+
+    Dry run is the DEFAULT. Sending real orders takes `--arm`, because the
+    difference between a rehearsal and six months of live decisions should be a
+    word you had to type, not a flag you forgot.
+    """
+    from .jobs import evening
+    from .market_hours import SESSION_CLOSE, now_exchange, session_is_final
+    from .ui.dashboard import write
+
+    if not session_is_final(args.day):
+        print(
+            f"{args.day} has not closed yet -- it is {now_exchange():%H:%M} in "
+            f"New York and the bell is at {SESSION_CLOSE:%H:%M}."
+        )
+        print(
+            "Nothing to do until then: today's bars would be provisional, and "
+            "the scan would price off a quote that is still moving."
+        )
+        return 1
+
+    mode = "ARMED -- orders will be sent" if args.arm else "dry run -- nothing sent"
+    print(f"daily run for {args.day}  ({mode})")
+    print("=" * 64)
+
+    print()
+    print("[1/3] refreshing bars")
+    rc = cmd_fetch(args)
+    if rc:
+        print(
+            "fetch failed -- stopping before the scan, which would otherwise "
+            "read a stale cache and report a clean zero."
+        )
+        return rc
+
+    print()
+    print("[2/3] scanning")
+    ctx = _context(args, dry_run=not args.arm)
+    result = evening.run(ctx)
+    print()
+    print(f"[{result.job}] {result.status}: {result.summary}")
+    for note in result.notes:
+        print(f"  {note}")
+
+    print()
+    print("[3/3] rendering the dashboard")
+    out = write(
+        ctx.repo, args.out, cache=ctx.cache, policy=ctx.policy, as_of=args.day
+    )
+    print(f"wrote {out}  ({out.stat().st_size / 1024:.0f} KB)")
+    print()
+    print(f"read it:  {'start' if sys.platform == 'win32' else 'open'} {out}")
+
+    return 0 if result.status in ("ok", "skipped") else 1
+
+
 def _regime_on_file(ctx) -> Regime | None:
     """The regime the last evening scan measured, or None if there isn't one.
 
@@ -597,6 +659,20 @@ def build_parser() -> argparse.ArgumentParser:
     diag = add("diagnose", "does the ranking function predict anything?")
     diag.add_argument("--start", type=date.fromisoformat, default=None)
     diag.set_defaults(func=cmd_diagnose)
+
+    daily = add("daily", "the nightly routine: fetch, scan, render (dry run)")
+    daily.add_argument("--days", type=int, default=2600)
+    daily.add_argument(
+        "--source", choices=("yahoo", "alpaca"), default="yahoo",
+        help="yahoo needs no credentials (default)",
+    )
+    daily.add_argument("--full", action="store_true", help="ignore what is cached")
+    daily.add_argument("--out", default="out/dashboard.html")
+    daily.add_argument(
+        "--arm", action="store_true",
+        help="actually send orders (default is a dry run)",
+    )
+    daily.set_defaults(func=cmd_daily)
 
     dash = add("dashboard", "render the state database as an HTML page")
     dash.add_argument("--out", default="out/dashboard.html")
