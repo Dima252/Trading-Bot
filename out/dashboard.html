@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Trading Bot — 2025-06-10</title>
+<title>Trading Bot — 2026-08-27</title>
 <style>
 :root{--bg:#fbfbfa;--fg:#1a1a19;--dim:#6b6b68;--line:#e3e3e0;--card:#fff;
 --pos:#0f7b4f;--neg:#b3261e;--warn:#9a6700;--accent:#2b5eea;--bm:#9a9a96}
@@ -61,265 +61,1158 @@ color:var(--dim);font-size:11.5px}
 </style></head><body>
 
 <h1>Trading Bot</h1>
-<p class="sub">Policy <code>v1</code> · as of 2025-06-10
- · generated 2026-08-28 11:12 UTC</p>
+<p class="sub">Policy <code>v2-holdout</code> · as of 2026-08-27
+ · generated 2026-08-28 12:25 UTC</p>
 
-<div class="tiles"><div class="tile "><span class="k">equity</span><span class="v">$94,787</span></div><div class="tile "><span class="k">cash</span><span class="v">$45,372</span></div><div class="tile "><span class="k">heat</span><span class="v">3.19% / 6%</span></div><div class="tile pos"><span class="k">7-day</span><span class="v">0.57%</span></div><div class="tile "><span class="k">regime</span><span class="v">chop</span></div><div class="tile ok"><span class="k">kill switch</span><span class="v">clear</span></div></div><div class="jobs"><div class="job ok"><span class="k">evening</span><span class="v">ok · 2025-06-10</span></div><div class="job ok"><span class="k">premarket</span><span class="v">ok · 2025-06-10</span></div><div class="job ok"><span class="k">open</span><span class="v">ok · 2025-06-10</span></div><div class="job ok"><span class="k">close</span><span class="v">ok · 2025-06-10</span></div></div>
+<div class="tiles"><div class="tile "><span class="k">equity</span><span class="v">$100,000</span></div><div class="tile "><span class="k">cash</span><span class="v">$100,000</span></div><div class="tile "><span class="k">heat</span><span class="v">0.00% / 10%</span></div><div class="tile "><span class="k">7-day</span><span class="v">—</span></div><div class="tile "><span class="k">regime</span><span class="v">—</span></div><div class="tile ok"><span class="k">kill switch</span><span class="v">clear</span></div></div><div class="jobs"><div class="job ok"><span class="k">evening</span><span class="v">ok · 2026-08-27</span></div><div class="job bad"><span class="k">premarket</span><span class="v">never run</span></div><div class="job bad"><span class="k">open</span><span class="v">never run</span></div><div class="job bad"><span class="k">close</span><span class="v">never run</span></div></div>
 
 <h2>Equity vs benchmark</h2>
 <svg viewBox="0 0 900 220" class="chart"
      preserveAspectRatio="none" role="img" aria-label="equity curve">
   <line class="axis" x1="24" y1="196" x2="876"
         y2="196" />
-  <polyline class="bm" points="24.0,58.0 36.3,69.1 48.7,59.1 61.0,75.8 73.4,70.6 85.7,95.3 98.1,102.8 110.4,98.0 122.8,110.0 135.1,91.7 147.5,84.7 159.8,94.6 172.2,84.8 184.5,87.4 196.9,87.1 209.2,70.8 221.6,68.6 233.9,79.6 246.3,82.1 258.6,100.5 271.0,94.5 283.3,91.9 295.7,86.2 308.0,131.1 320.3,181.8 332.7,183.3 345.0,196.0 357.4,111.9 369.7,150.7 382.1,135.6 394.4,127.2 406.8,129.6 419.1,148.9 431.5,147.7 443.8,167.9 456.2,146.4 468.5,133.2 480.9,115.0 493.2,108.6 505.6,108.3 517.9,102.7 530.3,102.3 542.6,96.0 555.0,82.6 567.3,87.8 579.7,95.4 592.0,91.7 604.3,85.3 616.7,86.5 629.0,56.4 641.4,50.2 653.7,49.0 666.1,44.4 678.4,38.3 690.8,37.3 703.1,40.5 715.5,56.6 727.8,56.3 740.2,62.7 752.5,43.2 764.9,48.8 777.2,45.0 789.6,46.1 801.9,40.7 814.3,35.3 826.6,35.5 839.0,40.2 851.3,30.4 863.7,29.5 876.0,24.0" />
-  <polyline class="eq" points="24.0,58.0 36.3,59.8 48.7,56.3 61.0,70.0 73.4,75.1 85.7,76.2 98.1,91.4 110.4,98.8 122.8,104.8 135.1,107.0 147.5,99.4 159.8,102.6 172.2,99.3 184.5,107.9 196.9,113.1 209.2,104.4 221.6,106.6 233.9,100.9 246.3,95.3 258.6,96.5 271.0,89.0 283.3,93.2 295.7,95.1 308.0,104.1 320.3,131.6 332.7,133.0 345.0,140.1 357.4,131.2 369.7,133.8 382.1,122.2 394.4,115.1 406.8,113.7 419.1,115.3 431.5,122.1 443.8,127.8 456.2,121.6 468.5,123.8 480.9,127.2 493.2,129.3 505.6,129.8 517.9,122.3 530.3,111.6 542.6,108.2 555.0,112.3 567.3,112.1 579.7,110.9 592.0,109.7 604.3,114.5 616.7,115.6 629.0,136.9 641.4,142.0 653.7,143.1 666.1,133.7 678.4,132.5 690.8,127.1 703.1,126.9 715.5,133.8 727.8,135.9 740.2,128.0 752.5,119.3 764.9,124.1 777.2,122.5 789.6,124.2 801.9,113.3 814.3,112.0 826.6,105.2 839.0,105.6 851.3,105.5 863.7,105.1 876.0,106.9" />
-  <text x="24" y="16" class="legend"><tspan class="k-eq">agent -5.2%</tspan>  <tspan class="k-bm">benchmark +3.6%</tspan></text>
+  
+  <polyline class="eq" points="24.0,196.0 876.0,196.0" />
+  <text x="24" y="16" class="legend"><tspan class="k-eq">agent +0.0%</tspan></text>
 </svg>
-<p class="cap">2025-03-03 &rarr; 2025-06-10, both rebased to 100.</p>
+<p class="cap">2026-08-27 &rarr; 2026-08-28, both rebased to 100.</p>
 
 <h2>Open positions</h2>
-<div class="scroll"><table>
-<thead><tr><th>ticker</th><th>setup</th><th>qty</th><th>entry</th><th>stop</th>
-<th>target</th><th>R:R</th><th>held</th><th>sector</th><th>thesis</th></tr></thead>
-<tbody><tr>
-  <td class="sym">AVGO</td>
-  <td>breakout</td>
-  <td class="num">33</td>
-  <td class="num">258.57</td>
-  <td class="num">230.57</td>
-  <td class="num">325.83</td>
-  <td class="num">2.4R</td>
-  <td class="num">6d</td>
-  <td>Technology</td>
-  <td class="why">breakout in trend: score 75.3, 2.4R:R, sized by risk_per_trade</td>
-</tr><tr>
-  <td class="sym">CRM</td>
-  <td>pullback</td>
-  <td class="num">48</td>
-  <td class="num">269.81</td>
-  <td class="num">250.15</td>
-  <td class="num">318.98</td>
-  <td class="num">2.5R</td>
-  <td class="num">1d</td>
-  <td>Technology</td>
-  <td class="why">pullback in trend: score 76.4, 2.5R:R, sized by risk_per_trade</td>
-</tr><tr>
-  <td class="sym">PM</td>
-  <td>breakout</td>
-  <td class="num">80</td>
-  <td class="num">175.04</td>
-  <td class="num">163.61</td>
-  <td class="num">201.07</td>
-  <td class="num">2.3R</td>
-  <td class="num">8d</td>
-  <td>Staples</td>
-  <td class="why">breakout in trend: score 63.7, 2.3R:R, sized by position_size_cap</td>
-</tr><tr>
-  <td class="sym">PSX</td>
-  <td>pullback</td>
-  <td class="num">131</td>
-  <td class="num">108.18</td>
-  <td class="num">104.46</td>
-  <td class="num">117.46</td>
-  <td class="num">2.5R</td>
-  <td class="num">5d</td>
-  <td>Energy</td>
-  <td class="why">pullback in trend: score 81.0, 2.5R:R, sized by position_size_cap</td>
-</tr></tbody></table></div>
+<div class="scroll"><p class="empty">No open positions.</p></div>
 
 <h2>Watchlist</h2>
-<div class="scroll"><p class="cap">Written 2025-06-10 — 19 candidates.</p>
+<div class="scroll"><p class="cap">Written 2026-08-27 — 113 candidates.</p>
 <table>
 <thead><tr><th>ticker</th><th>setup</th><th>entry type</th><th>score</th>
 <th>entry</th><th>stop</th><th>target</th><th>status</th><th>why</th></tr></thead>
 <tbody><tr class="ok">
-  <td class="sym">ISRG</td>
+  <td class="sym">FAST</td>
   <td>pullback</td>
   <td>resting_limit</td>
-  <td class="num">83.4</td>
-  <td class="num">529.60</td>
-  <td class="num">494.48</td>
-  <td class="num">617.40</td>
+  <td class="num">88.1</td>
+  <td class="num">50.42</td>
+  <td class="num">49.35</td>
+  <td class="num">53.10</td>
   <td>Pending</td>
   <td class="why"></td>
 </tr><tr class="ok">
-  <td class="sym">ADP</td>
+  <td class="sym">CVX</td>
   <td>pullback</td>
   <td>resting_limit</td>
-  <td class="num">79.5</td>
-  <td class="num">304.49</td>
-  <td class="num">299.58</td>
-  <td class="num">316.79</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">CRM</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">72.8</td>
-  <td class="num">265.55</td>
-  <td class="num">250.19</td>
-  <td class="num">303.93</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">COST</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">71.5</td>
-  <td class="num">1000.04</td>
-  <td class="num">979.13</td>
-  <td class="num">1052.32</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">NFLX</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">70.9</td>
-  <td class="num">119.53</td>
-  <td class="num">116.78</td>
-  <td class="num">126.39</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">NOW</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">70.7</td>
-  <td class="num">201.21</td>
-  <td class="num">196.76</td>
-  <td class="num">212.36</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">DIS</td>
-  <td>breakout</td>
-  <td>close_confirm</td>
-  <td class="num">70.5</td>
-  <td class="num">116.54</td>
-  <td class="num">109.16</td>
-  <td class="num">138.66</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">WMT</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">68.1</td>
-  <td class="num">96.28</td>
-  <td class="num">94.45</td>
-  <td class="num">100.87</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">DE</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">67.6</td>
-  <td class="num">500.14</td>
-  <td class="num">489.10</td>
-  <td class="num">527.72</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">SPGI</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">67.2</td>
-  <td class="num">479.16</td>
-  <td class="num">467.96</td>
-  <td class="num">507.18</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">GE</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">67.1</td>
-  <td class="num">237.22</td>
-  <td class="num">231.71</td>
-  <td class="num">251.00</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">LOW</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">66.9</td>
-  <td class="num">219.20</td>
-  <td class="num">214.63</td>
-  <td class="num">230.61</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">HD</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">66.2</td>
-  <td class="num">357.41</td>
-  <td class="num">348.71</td>
-  <td class="num">379.16</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">PLD</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">63.9</td>
-  <td class="num">103.45</td>
-  <td class="num">99.64</td>
-  <td class="num">112.96</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">SHW</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">62.8</td>
-  <td class="num">352.17</td>
-  <td class="num">345.49</td>
-  <td class="num">368.89</td>
-  <td>Pending</td>
-  <td class="why"></td>
-</tr><tr class="ok">
-  <td class="sym">LMT</td>
-  <td>pullback</td>
-  <td>resting_limit</td>
-  <td class="num">59.0</td>
-  <td class="num">461.38</td>
-  <td class="num">447.85</td>
-  <td class="num">495.20</td>
+  <td class="num">87.9</td>
+  <td class="num">197.33</td>
+  <td class="num">191.09</td>
+  <td class="num">212.93</td>
   <td>Pending</td>
   <td class="why"></td>
 </tr><tr class="ok">
   <td class="sym">ABT</td>
   <td>pullback</td>
   <td>resting_limit</td>
-  <td class="num">58.8</td>
-  <td class="num">129.40</td>
-  <td class="num">126.70</td>
-  <td class="num">136.14</td>
+  <td class="num">87.4</td>
+  <td class="num">110.79</td>
+  <td class="num">108.25</td>
+  <td class="num">117.12</td>
   <td>Pending</td>
   <td class="why"></td>
 </tr><tr class="ok">
-  <td class="sym">UNP</td>
+  <td class="sym">MTD</td>
   <td>pullback</td>
   <td>resting_limit</td>
-  <td class="num">58.4</td>
-  <td class="num">217.42</td>
-  <td class="num">211.58</td>
-  <td class="num">232.01</td>
+  <td class="num">86.9</td>
+  <td class="num">1398.37</td>
+  <td class="num">1362.19</td>
+  <td class="num">1488.80</td>
   <td>Pending</td>
   <td class="why"></td>
 </tr><tr class="ok">
-  <td class="sym">CMCSA</td>
+  <td class="sym">WAB</td>
   <td>pullback</td>
   <td>resting_limit</td>
-  <td class="num">56.5</td>
-  <td class="num">30.74</td>
-  <td class="num">29.82</td>
-  <td class="num">33.05</td>
+  <td class="num">86.8</td>
+  <td class="num">294.33</td>
+  <td class="num">287.97</td>
+  <td class="num">310.24</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">GEHC</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">86.7</td>
+  <td class="num">71.91</td>
+  <td class="num">70.17</td>
+  <td class="num">76.27</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">CTAS</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">86.4</td>
+  <td class="num">202.49</td>
+  <td class="num">195.45</td>
+  <td class="num">220.09</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">EMR</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">86.3</td>
+  <td class="num">156.18</td>
+  <td class="num">152.25</td>
+  <td class="num">166.01</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">AXON</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">86.0</td>
+  <td class="num">597.01</td>
+  <td class="num">564.32</td>
+  <td class="num">678.75</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">CPAY</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">85.9</td>
+  <td class="num">402.61</td>
+  <td class="num">392.35</td>
+  <td class="num">428.26</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">AVY</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">85.9</td>
+  <td class="num">177.53</td>
+  <td class="num">172.55</td>
+  <td class="num">189.97</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">OXY</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">85.8</td>
+  <td class="num">58.36</td>
+  <td class="num">56.79</td>
+  <td class="num">62.27</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">SWK</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">85.6</td>
+  <td class="num">98.75</td>
+  <td class="num">96.01</td>
+  <td class="num">105.59</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">EXPE</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">85.5</td>
+  <td class="num">317.00</td>
+  <td class="num">304.76</td>
+  <td class="num">347.60</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">MDT</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">85.4</td>
+  <td class="num">89.92</td>
+  <td class="num">87.87</td>
+  <td class="num">95.06</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">AMP</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">85.4</td>
+  <td class="num">553.47</td>
+  <td class="num">542.18</td>
+  <td class="num">581.70</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">MMM</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">85.3</td>
+  <td class="num">178.06</td>
+  <td class="num">174.60</td>
+  <td class="num">186.71</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">STE</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">85.0</td>
+  <td class="num">232.97</td>
+  <td class="num">227.65</td>
+  <td class="num">246.26</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">VLTO</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">84.9</td>
+  <td class="num">97.41</td>
+  <td class="num">95.34</td>
+  <td class="num">102.61</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">GM</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">84.9</td>
+  <td class="num">85.91</td>
+  <td class="num">83.05</td>
+  <td class="num">93.06</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">INTU</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">84.8</td>
+  <td class="num">341.68</td>
+  <td class="num">318.60</td>
+  <td class="num">399.37</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">ERIE</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">84.8</td>
+  <td class="num">254.48</td>
+  <td class="num">244.45</td>
+  <td class="num">279.55</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">MRSH</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">84.8</td>
+  <td class="num">189.42</td>
+  <td class="num">183.13</td>
+  <td class="num">205.14</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">DVN</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">84.2</td>
+  <td class="num">46.33</td>
+  <td class="num">43.33</td>
+  <td class="num">53.86</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">NTAP</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">83.8</td>
+  <td class="num">190.34</td>
+  <td class="num">183.09</td>
+  <td class="num">208.49</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">CHTR</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">83.5</td>
+  <td class="num">148.32</td>
+  <td class="num">140.89</td>
+  <td class="num">166.90</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">RJF</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">83.4</td>
+  <td class="num">176.07</td>
+  <td class="num">167.97</td>
+  <td class="num">196.31</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">VEEV</td>
+  <td>breakout</td>
+  <td>close_confirm</td>
+  <td class="num">83.3</td>
+  <td class="num">282.13</td>
+  <td class="num">248.37</td>
+  <td class="num">383.41</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">SYF</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">83.2</td>
+  <td class="num">78.78</td>
+  <td class="num">75.16</td>
+  <td class="num">87.83</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">BAX</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">83.1</td>
+  <td class="num">25.93</td>
+  <td class="num">25.06</td>
+  <td class="num">28.10</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">GRMN</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">82.9</td>
+  <td class="num">289.87</td>
+  <td class="num">282.26</td>
+  <td class="num">308.90</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">BRO</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">82.9</td>
+  <td class="num">71.32</td>
+  <td class="num">68.22</td>
+  <td class="num">79.07</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">LYB</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">82.8</td>
+  <td class="num">62.84</td>
+  <td class="num">60.74</td>
+  <td class="num">68.08</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">AMCR</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">82.6</td>
+  <td class="num">46.52</td>
+  <td class="num">44.52</td>
+  <td class="num">51.53</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">MET</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">82.5</td>
+  <td class="num">95.68</td>
+  <td class="num">92.93</td>
+  <td class="num">102.55</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">CLX</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">82.3</td>
+  <td class="num">103.63</td>
+  <td class="num">100.81</td>
+  <td class="num">110.68</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">CF</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">81.9</td>
+  <td class="num">122.44</td>
+  <td class="num">114.29</td>
+  <td class="num">142.82</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">COF</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">81.7</td>
+  <td class="num">216.40</td>
+  <td class="num">210.07</td>
+  <td class="num">232.23</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">SCHW</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">81.5</td>
+  <td class="num">108.05</td>
+  <td class="num">105.76</td>
+  <td class="num">113.77</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">BKR</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">81.4</td>
+  <td class="num">62.11</td>
+  <td class="num">60.43</td>
+  <td class="num">66.32</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">MKC</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">81.4</td>
+  <td class="num">54.05</td>
+  <td class="num">52.52</td>
+  <td class="num">57.87</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">TRV</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">81.4</td>
+  <td class="num">369.02</td>
+  <td class="num">357.05</td>
+  <td class="num">398.96</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">CSGP</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">81.3</td>
+  <td class="num">31.34</td>
+  <td class="num">29.90</td>
+  <td class="num">34.95</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">ALLE</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">81.3</td>
+  <td class="num">159.72</td>
+  <td class="num">155.80</td>
+  <td class="num">169.51</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">BKNG</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">81.0</td>
+  <td class="num">202.56</td>
+  <td class="num">195.84</td>
+  <td class="num">219.36</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">GDDY</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">80.9</td>
+  <td class="num">95.33</td>
+  <td class="num">90.13</td>
+  <td class="num">108.33</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">PRU</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">80.2</td>
+  <td class="num">120.32</td>
+  <td class="num">117.38</td>
+  <td class="num">127.68</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">CHD</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">80.0</td>
+  <td class="num">100.58</td>
+  <td class="num">95.70</td>
+  <td class="num">112.78</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">XOM</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">79.8</td>
+  <td class="num">156.44</td>
+  <td class="num">152.97</td>
+  <td class="num">165.11</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">CBRE</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">79.8</td>
+  <td class="num">147.22</td>
+  <td class="num">142.94</td>
+  <td class="num">157.93</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">NUE</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">79.8</td>
+  <td class="num">252.37</td>
+  <td class="num">236.40</td>
+  <td class="num">292.29</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">OKE</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">79.7</td>
+  <td class="num">92.66</td>
+  <td class="num">90.25</td>
+  <td class="num">98.69</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">HPQ</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">79.5</td>
+  <td class="num">28.99</td>
+  <td class="num">26.37</td>
+  <td class="num">35.52</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">UBER</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">79.3</td>
+  <td class="num">76.14</td>
+  <td class="num">73.30</td>
+  <td class="num">83.24</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">FANG</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">78.9</td>
+  <td class="num">200.52</td>
+  <td class="num">194.68</td>
+  <td class="num">215.12</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">SWKS</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">78.9</td>
+  <td class="num">66.76</td>
+  <td class="num">62.36</td>
+  <td class="num">77.76</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">IEX</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">78.8</td>
+  <td class="num">233.49</td>
+  <td class="num">227.28</td>
+  <td class="num">249.00</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">RTX</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">78.8</td>
+  <td class="num">212.08</td>
+  <td class="num">206.32</td>
+  <td class="num">226.48</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">WSM</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">78.8</td>
+  <td class="num">238.40</td>
+  <td class="num">219.26</td>
+  <td class="num">286.24</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">AMZN</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">78.6</td>
+  <td class="num">256.26</td>
+  <td class="num">249.55</td>
+  <td class="num">273.03</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">AIZ</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">78.4</td>
+  <td class="num">283.39</td>
+  <td class="num">272.85</td>
+  <td class="num">309.76</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">DLR</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">78.4</td>
+  <td class="num">192.10</td>
+  <td class="num">182.92</td>
+  <td class="num">215.06</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">PH</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">78.3</td>
+  <td class="num">1011.20</td>
+  <td class="num">986.24</td>
+  <td class="num">1073.61</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">IP</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">78.3</td>
+  <td class="num">39.88</td>
+  <td class="num">38.57</td>
+  <td class="num">43.15</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">JNJ</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">78.2</td>
+  <td class="num">264.12</td>
+  <td class="num">255.36</td>
+  <td class="num">286.01</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">LMT</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">77.9</td>
+  <td class="num">565.89</td>
+  <td class="num">551.59</td>
+  <td class="num">601.65</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">APD</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">77.3</td>
+  <td class="num">302.72</td>
+  <td class="num">296.23</td>
+  <td class="num">318.96</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">EOG</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">76.9</td>
+  <td class="num">144.50</td>
+  <td class="num">139.57</td>
+  <td class="num">156.83</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">ALL</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">76.8</td>
+  <td class="num">257.62</td>
+  <td class="num">251.30</td>
+  <td class="num">273.42</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">FISV</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">76.8</td>
+  <td class="num">52.58</td>
+  <td class="num">50.44</td>
+  <td class="num">57.93</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">JPM</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">76.8</td>
+  <td class="num">354.22</td>
+  <td class="num">348.31</td>
+  <td class="num">369.00</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">SHW</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">76.6</td>
+  <td class="num">345.21</td>
+  <td class="num">336.72</td>
+  <td class="num">366.43</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">NTRS</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">76.5</td>
+  <td class="num">186.03</td>
+  <td class="num">181.48</td>
+  <td class="num">197.40</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">AWK</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">75.5</td>
+  <td class="num">135.93</td>
+  <td class="num">132.49</td>
+  <td class="num">144.52</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">ABBV</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">75.0</td>
+  <td class="num">256.85</td>
+  <td class="num">246.23</td>
+  <td class="num">283.40</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">DRI</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">74.9</td>
+  <td class="num">211.13</td>
+  <td class="num">205.21</td>
+  <td class="num">225.92</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">AES</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">74.7</td>
+  <td class="num">14.72</td>
+  <td class="num">14.67</td>
+  <td class="num">14.84</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">WELL</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">74.6</td>
+  <td class="num">237.12</td>
+  <td class="num">230.02</td>
+  <td class="num">254.88</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">AME</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">74.6</td>
+  <td class="num">243.67</td>
+  <td class="num">236.10</td>
+  <td class="num">262.59</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">TAP</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">74.3</td>
+  <td class="num">41.66</td>
+  <td class="num">40.34</td>
+  <td class="num">44.96</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">APH</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">74.1</td>
+  <td class="num">160.96</td>
+  <td class="num">150.01</td>
+  <td class="num">188.33</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">HII</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">74.1</td>
+  <td class="num">297.29</td>
+  <td class="num">284.20</td>
+  <td class="num">330.01</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">AOS</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.9</td>
+  <td class="num">61.95</td>
+  <td class="num">60.15</td>
+  <td class="num">66.44</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">PM</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.9</td>
+  <td class="num">189.86</td>
+  <td class="num">183.11</td>
+  <td class="num">206.74</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">MDLZ</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.8</td>
+  <td class="num">62.43</td>
+  <td class="num">61.07</td>
+  <td class="num">65.83</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">EG</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.8</td>
+  <td class="num">372.32</td>
+  <td class="num">358.69</td>
+  <td class="num">406.39</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">CAH</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.6</td>
+  <td class="num">233.89</td>
+  <td class="num">226.24</td>
+  <td class="num">253.00</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">BALL</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.5</td>
+  <td class="num">63.13</td>
+  <td class="num">60.56</td>
+  <td class="num">69.55</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">SBAC</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.4</td>
+  <td class="num">183.03</td>
+  <td class="num">176.68</td>
+  <td class="num">198.92</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">AMT</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.4</td>
+  <td class="num">173.89</td>
+  <td class="num">169.10</td>
+  <td class="num">185.87</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">NOC</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.3</td>
+  <td class="num">545.13</td>
+  <td class="num">531.76</td>
+  <td class="num">578.57</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">HSY</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.2</td>
+  <td class="num">181.32</td>
+  <td class="num">177.31</td>
+  <td class="num">191.35</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">DE</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.2</td>
+  <td class="num">617.92</td>
+  <td class="num">574.35</td>
+  <td class="num">726.86</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">PCG</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">73.1</td>
+  <td class="num">17.74</td>
+  <td class="num">16.82</td>
+  <td class="num">20.03</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">GD</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">72.8</td>
+  <td class="num">380.06</td>
+  <td class="num">373.19</td>
+  <td class="num">397.24</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">EW</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">72.6</td>
+  <td class="num">89.95</td>
+  <td class="num">87.92</td>
+  <td class="num">95.02</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">ITW</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">72.5</td>
+  <td class="num">281.67</td>
+  <td class="num">276.19</td>
+  <td class="num">295.38</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">ALB</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">72.4</td>
+  <td class="num">132.17</td>
+  <td class="num">125.73</td>
+  <td class="num">148.25</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">BF.B</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">72.3</td>
+  <td class="num">27.28</td>
+  <td class="num">26.44</td>
+  <td class="num">29.37</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">KVUE</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">71.8</td>
+  <td class="num">19.09</td>
+  <td class="num">18.64</td>
+  <td class="num">20.23</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">PKG</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">71.3</td>
+  <td class="num">243.69</td>
+  <td class="num">237.84</td>
+  <td class="num">258.31</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">DOW</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">71.3</td>
+  <td class="num">30.33</td>
+  <td class="num">29.28</td>
+  <td class="num">32.96</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">BRK.B</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">69.9</td>
+  <td class="num">503.70</td>
+  <td class="num">493.95</td>
+  <td class="num">528.08</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">DLTR</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">69.9</td>
+  <td class="num">127.00</td>
+  <td class="num">116.96</td>
+  <td class="num">152.10</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">BAC</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">69.6</td>
+  <td class="num">61.17</td>
+  <td class="num">60.11</td>
+  <td class="num">63.83</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">CNC</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">69.1</td>
+  <td class="num">65.16</td>
+  <td class="num">62.91</td>
+  <td class="num">70.80</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">KMB</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">69.0</td>
+  <td class="num">109.71</td>
+  <td class="num">106.76</td>
+  <td class="num">117.08</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">CRM</td>
+  <td>breakout</td>
+  <td>close_confirm</td>
+  <td class="num">68.5</td>
+  <td class="num">252.05</td>
+  <td class="num">220.10</td>
+  <td class="num">347.90</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">PFG</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">67.6</td>
+  <td class="num">112.17</td>
+  <td class="num">109.46</td>
+  <td class="num">118.93</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">KHC</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">66.8</td>
+  <td class="num">25.13</td>
+  <td class="num">24.07</td>
+  <td class="num">27.78</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">BBY</td>
+  <td>pullback</td>
+  <td>resting_limit</td>
+  <td class="num">66.6</td>
+  <td class="num">83.56</td>
+  <td class="num">75.84</td>
+  <td class="num">102.86</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">ADSK</td>
+  <td>breakout</td>
+  <td>close_confirm</td>
+  <td class="num">62.4</td>
+  <td class="num">270.58</td>
+  <td class="num">241.47</td>
+  <td class="num">357.91</td>
+  <td>Pending</td>
+  <td class="why"></td>
+</tr><tr class="ok">
+  <td class="sym">TYL</td>
+  <td>breakout</td>
+  <td>close_confirm</td>
+  <td class="num">59.6</td>
+  <td class="num">369.88</td>
+  <td class="num">327.44</td>
+  <td class="num">497.20</td>
   <td>Pending</td>
   <td class="why"></td>
 </tr></tbody></table></div>
@@ -327,1054 +1220,13 @@ color:var(--dim);font-size:11.5px}
 <h2>Decision log</h2>
 <p class="cap">Every action, and every action the constitution vetoed with the
 rule that fired.</p>
-<div class="scroll"><table>
-<thead><tr><th>day</th><th>job</th><th>action</th><th>ticker</th><th>qty</th>
-<th>score</th><th>verdict</th><th>reason</th></tr></thead>
-<tbody><tr class="ok">
-  <td class="num dim">2025-06-10</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">DIS</td>
-  <td class="num">69</td>
-  <td class="num">70.5</td>
-  <td>approved</td>
-  <td class="why">breakout in chop: score 70.5, 3.0R:R, sized by cash_reserve</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-10</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">ADP</td>
-  <td class="num">46</td>
-  <td class="num">79.5</td>
-  <td>approved</td>
-  <td class="why">pullback in chop: score 79.5, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-10</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">ISRG</td>
-  <td class="num">26</td>
-  <td class="num">83.4</td>
-  <td>approved</td>
-  <td class="why">pullback in chop: score 83.4, 2.5R:R, sized by risk_per_trade</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-10</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">COST</td>
-  <td class="num">14</td>
-  <td class="num">78.6</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Staples would reach 29.30%, cap 25.00%</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-10</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">ADP</td>
-  <td class="num">46</td>
-  <td class="num">78.1</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 78.1, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-09</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">COST</td>
-  <td class="num">14</td>
-  <td class="num">72.6</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Staples would reach 29.30%, cap 25.00%</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-09</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">ADP</td>
-  <td class="num">46</td>
-  <td class="num">72.1</td>
-  <td>approved</td>
-  <td class="why">pullback in chop: score 72.1, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-09</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">WMT</td>
-  <td class="num">147</td>
-  <td class="num">73.9</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Staples would reach 29.60%, cap 25.00%</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-09</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">COST</td>
-  <td class="num">14</td>
-  <td class="num">75.5</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Staples would reach 29.53%, cap 25.00%</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-09</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">CRM</td>
-  <td class="num">48</td>
-  <td class="num">76.4</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 76.4, 2.5R:R, sized by risk_per_trade</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-09</td>
-  <td>open</td>
-  <td class="kind">CLOSE</td>
-  <td class="sym">INTU</td>
-  <td class="num">15</td>
-  <td class="num"></td>
-  <td>approved</td>
-  <td class="why">time stop: 0.34R after 12d</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-09</td>
-  <td>open</td>
-  <td class="kind">CLOSE</td>
-  <td class="sym">TJX</td>
-  <td class="num">111</td>
-  <td class="num"></td>
-  <td>approved</td>
-  <td class="why">time stop: 0.26R after 12d</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-06</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AAPL</td>
-  <td class="num">52</td>
-  <td class="num">59.3</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Technology would reach 31.60%, cap 25.00%</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-06</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">CRM</td>
-  <td class="num">48</td>
-  <td class="num">70.4</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Technology would reach 34.18%, cap 25.00%</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-06</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">MU</td>
-  <td class="num">80</td>
-  <td class="num">71.1</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Technology would reach 29.85%, cap 25.00%</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-06</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">COST</td>
-  <td class="num">14</td>
-  <td class="num">77.1</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Staples would reach 29.49%, cap 25.00%</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-05</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">COST</td>
-  <td class="num">14</td>
-  <td class="num">71.1</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Staples would reach 29.49%, cap 25.00%</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-05</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">NEE</td>
-  <td class="num">140</td>
-  <td class="num">62.8</td>
-  <td>approved</td>
-  <td class="why">pullback in chop: score 62.8, 2.5R:R, sized by cash_reserve</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-05</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">TSLA</td>
-  <td class="num">42</td>
-  <td class="num">77.4</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Discretionary would reach 29.40%, cap 25.00%</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-05</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">PSX</td>
-  <td class="num">131</td>
-  <td class="num">81.0</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 81.0, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-04</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">TSLA</td>
-  <td class="num">42</td>
-  <td class="num">71.4</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Discretionary would reach 29.40%, cap 25.00%</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-04</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">PSX</td>
-  <td class="num">131</td>
-  <td class="num">75.0</td>
-  <td>approved</td>
-  <td class="why">pullback in chop: score 75.0, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-04</td>
-  <td>close</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AVGO</td>
-  <td class="num">33</td>
-  <td class="num">75.3</td>
-  <td>approved</td>
-  <td class="why">breakout in trend: score 75.3, 2.4R:R, sized by risk_per_trade</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-04</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AMAT</td>
-  <td class="num">89</td>
-  <td class="num">78.5</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Technology would reach 26.95%, cap 25.00%</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-03</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AMAT</td>
-  <td class="num">89</td>
-  <td class="num">72.5</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Technology would reach 26.95%, cap 25.00%</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-03</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AMAT</td>
-  <td class="num">90</td>
-  <td class="num">82.0</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Technology would reach 26.96%, cap 25.00%</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-02</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AMAT</td>
-  <td class="num">90</td>
-  <td class="num">76.0</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Technology would reach 26.96%, cap 25.00%</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-02</td>
-  <td>close</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">PM</td>
-  <td class="num">80</td>
-  <td class="num">63.7</td>
-  <td>approved</td>
-  <td class="why">breakout in trend: score 63.7, 2.3R:R, sized by position_size_cap</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-02</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AMD</td>
-  <td class="num">127</td>
-  <td class="num">75.7</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Technology would reach 26.90%, cap 25.00%</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-06-02</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">LRCX</td>
-  <td class="num">174</td>
-  <td class="num">77.5</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Technology would reach 26.94%, cap 25.00%</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-02</td>
-  <td>open</td>
-  <td class="kind">CLOSE</td>
-  <td class="sym">AMAT</td>
-  <td class="num">69</td>
-  <td class="num"></td>
-  <td>approved</td>
-  <td class="why">time stop: 0.03R after 10d</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-06-02</td>
-  <td>open</td>
-  <td class="kind">CLOSE</td>
-  <td class="sym">WMT</td>
-  <td class="num">145</td>
-  <td class="num"></td>
-  <td>approved</td>
-  <td class="why">time stop: 0.49R after 12d</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-30</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">NEE</td>
-  <td class="num">81</td>
-  <td class="num">63.3</td>
-  <td>approved</td>
-  <td class="why">pullback in chop: score 63.3, 2.5R:R, sized by cash_reserve</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-28</td>
-  <td>close</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">INTU</td>
-  <td class="num">15</td>
-  <td class="num">78.4</td>
-  <td>approved</td>
-  <td class="why">breakout in trend: score 78.4, 2.8R:R, sized by risk_per_trade</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-05-28</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">CRM</td>
-  <td class="num">51</td>
-  <td class="num">79.8</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Technology would reach 26.82%, cap 25.00%</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-28</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">TJX</td>
-  <td class="num">111</td>
-  <td class="num">79.7</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 79.7, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="muted">
-  <td class="num dim">2025-05-27</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">CRM</td>
-  <td class="num">51</td>
-  <td class="num">73.8</td>
-  <td>VETOED · max_sector_exposure</td>
-  <td class="why">Technology would reach 26.82%, cap 25.00%</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-27</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">TJX</td>
-  <td class="num">111</td>
-  <td class="num">73.7</td>
-  <td>approved</td>
-  <td class="why">pullback in chop: score 73.7, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-27</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">INTU</td>
-  <td class="num">17</td>
-  <td class="num">84.2</td>
-  <td>approved</td>
-  <td class="why">breakout in trend: score 84.2, 3.0R:R, sized by risk_per_trade</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-27</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">TJX</td>
-  <td class="num">112</td>
-  <td class="num">85.9</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 85.9, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-27</td>
-  <td>open</td>
-  <td class="kind">CLOSE</td>
-  <td class="sym">AMT</td>
-  <td class="num">64</td>
-  <td class="num">61.4</td>
-  <td>approved</td>
-  <td class="why">rotation: INTU scores 84.2 vs 61.4, premium 1.3x</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-27</td>
-  <td>open</td>
-  <td class="kind">CLOSE</td>
-  <td class="sym">MPC</td>
-  <td class="num">52</td>
-  <td class="num"></td>
-  <td>approved</td>
-  <td class="why">time stop: -0.09R after 13d</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-27</td>
-  <td>open</td>
-  <td class="kind">CLOSE</td>
-  <td class="sym">BA</td>
-  <td class="num">45</td>
-  <td class="num"></td>
-  <td>approved</td>
-  <td class="why">time stop: -0.12R after 13d</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-23</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">INTU</td>
-  <td class="num">12</td>
-  <td class="num">70.2</td>
-  <td>approved</td>
-  <td class="why">breakout in chop: score 70.2, 3.0R:R, sized by cash_reserve</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-23</td>
-  <td>evening</td>
-  <td class="kind">CLOSE</td>
-  <td class="sym">MPC</td>
-  <td class="num">52</td>
-  <td class="num">60.7</td>
-  <td>approved</td>
-  <td class="why">rotation: TJX scores 79.9 vs 60.7, premium 1.3x</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-23</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AMAT</td>
-  <td class="num">69</td>
-  <td class="num">76.4</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 76.4, 2.5R:R, sized by cash_reserve</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-23</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">WFC</td>
-  <td class="num">193</td>
-  <td class="num">76.7</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 76.7, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-23</td>
-  <td>open</td>
-  <td class="kind">CLOSE</td>
-  <td class="sym">DIS</td>
-  <td class="num">81</td>
-  <td class="num"></td>
-  <td>approved</td>
-  <td class="why">time stop: 0.09R after 10d</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-22</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">WFC</td>
-  <td class="num">193</td>
-  <td class="num">70.7</td>
-  <td>approved</td>
-  <td class="why">pullback in chop: score 70.7, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-22</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AXP</td>
-  <td class="num">49</td>
-  <td class="num">76.0</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 76.0, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-21</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AXP</td>
-  <td class="num">49</td>
-  <td class="num">76.0</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 76.0, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-21</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AMT</td>
-  <td class="num">64</td>
-  <td class="num">66.4</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 66.4, 2.5R:R, sized by risk_per_trade</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-21</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">WMT</td>
-  <td class="num">145</td>
-  <td class="num">73.6</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 73.6, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-20</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">AMT</td>
-  <td class="num">64</td>
-  <td class="num">66.4</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 66.4, 2.5R:R, sized by risk_per_trade</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-20</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">WMT</td>
-  <td class="num">145</td>
-  <td class="num">73.6</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 73.6, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-19</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">MCD</td>
-  <td class="num">45</td>
-  <td class="num">63.9</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 63.9, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-19</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">FCX</td>
-  <td class="num">374</td>
-  <td class="num">66.4</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 66.4, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-19</td>
-  <td>open</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">LMT</td>
-  <td class="num">30</td>
-  <td class="num">68.7</td>
-  <td>approved</td>
-  <td class="why">pullback in trend: score 68.7, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-16</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">MCD</td>
-  <td class="num">45</td>
-  <td class="num">57.9</td>
-  <td>approved</td>
-  <td class="why">pullback in chop: score 57.9, 2.5R:R, sized by position_size_cap</td>
-</tr><tr class="ok">
-  <td class="num dim">2025-05-16</td>
-  <td>evening</td>
-  <td class="kind">OPEN</td>
-  <td class="sym">FCX</td>
-  <td class="num">374</td>
-  <td class="num">60.4</td>
-  <td>approved</td>
-  <td class="why">pullback in chop: score 60.4, 2.5R:R, sized by position_size_cap</td>
-</tr></tbody></table></div>
+<div class="scroll"><p class="empty">No decisions recorded yet.</p></div>
 
 <h2>Closed trades</h2>
-<div class="scroll"><table>
-<thead><tr><th>ticker</th><th>setup</th><th>regime</th><th>in</th><th>out</th>
-<th>held</th><th>R</th><th>P&amp;L</th><th>MFE</th><th>MAE</th>
-<th>exit</th></tr></thead>
-<tbody><tr>
-  <td class="sym">ADP</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-06-10</td>
-  <td class="num dim">2025-06-10</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-220</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">FCX</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-05-19</td>
-  <td class="num dim">2025-06-04</td>
-  <td class="num">16d</td>
-  <td class="num pos">+2.49R</td>
-  <td class="num pos">$1,406</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">target</td>
-</tr><tr>
-  <td class="sym">WFC</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-05-23</td>
-  <td class="num dim">2025-06-04</td>
-  <td class="num">12d</td>
-  <td class="num pos">+2.50R</td>
-  <td class="num pos">$868</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">target</td>
-</tr><tr>
-  <td class="sym">TJX</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-05-27</td>
-  <td class="num dim">2025-05-27</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-298</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">unreconciled_exit</td>
-</tr><tr>
-  <td class="sym">AXP</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-05-22</td>
-  <td class="num dim">2025-05-22</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-611</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">unreconciled_exit</td>
-</tr><tr>
-  <td class="sym">PM</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-05-13</td>
-  <td class="num dim">2025-05-20</td>
-  <td class="num">7d</td>
-  <td class="num pos">+2.50R</td>
-  <td class="num pos">$813</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">target</td>
-</tr><tr>
-  <td class="sym">LMT</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-05-19</td>
-  <td class="num dim">2025-05-19</td>
-  <td class="num">0d</td>
-  <td class="num neg">-0.07R</td>
-  <td class="num neg">$-51</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">manual_close</td>
-</tr><tr>
-  <td class="sym">MCD</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-05-19</td>
-  <td class="num dim">2025-05-19</td>
-  <td class="num">0d</td>
-  <td class="num neg">-0.59R</td>
-  <td class="num neg">$-263</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">manual_close</td>
-</tr><tr>
-  <td class="sym">KO</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-05-05</td>
-  <td class="num dim">2025-05-12</td>
-  <td class="num">7d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-347</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">CVS</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-05-07</td>
-  <td class="num dim">2025-05-12</td>
-  <td class="num">5d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-553</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">AMT</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-05-09</td>
-  <td class="num dim">2025-05-12</td>
-  <td class="num">3d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-685</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">LMT</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-05-05</td>
-  <td class="num dim">2025-05-05</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-855</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">unreconciled_exit</td>
-</tr><tr>
-  <td class="sym">TJX</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-04-28</td>
-  <td class="num dim">2025-04-28</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-385</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">unreconciled_exit</td>
-</tr><tr>
-  <td class="sym">TJX</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-04-25</td>
-  <td class="num dim">2025-04-25</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-638</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">unreconciled_exit</td>
-</tr><tr>
-  <td class="sym">PM</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-04-08</td>
-  <td class="num dim">2025-04-23</td>
-  <td class="num">15d</td>
-  <td class="num pos">+2.50R</td>
-  <td class="num pos">$1,627</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">target</td>
-</tr><tr>
-  <td class="sym">BRK.B</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-04-22</td>
-  <td class="num dim">2025-04-22</td>
-  <td class="num">0d</td>
-  <td class="num pos">+0.23R</td>
-  <td class="num pos">$203</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">manual_close</td>
-</tr><tr>
-  <td class="sym">UNH</td>
-  <td>breakout</td>
-  <td></td>
-  <td class="num dim">2025-04-11</td>
-  <td class="num dim">2025-04-17</td>
-  <td class="num">6d</td>
-  <td class="num neg">-1.90R</td>
-  <td class="num neg">$-1,705</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">gap_through_stop</td>
-</tr><tr>
-  <td class="sym">DUK</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-04-08</td>
-  <td class="num dim">2025-04-09</td>
-  <td class="num">1d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-320</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">AMT</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-04-08</td>
-  <td class="num dim">2025-04-08</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-468</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">PM</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-04-07</td>
-  <td class="num dim">2025-04-07</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-339</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">SO</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-04-07</td>
-  <td class="num dim">2025-04-07</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-311</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">ABBV</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-31</td>
-  <td class="num dim">2025-04-04</td>
-  <td class="num">4d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-693</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">NEE</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-04-01</td>
-  <td class="num dim">2025-04-04</td>
-  <td class="num">3d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-551</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">INTC</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-04-04</td>
-  <td class="num dim">2025-04-04</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-950</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">INTC</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-31</td>
-  <td class="num dim">2025-04-03</td>
-  <td class="num">3d</td>
-  <td class="num neg">-1.02R</td>
-  <td class="num neg">$-829</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">gap_through_stop</td>
-</tr><tr>
-  <td class="sym">FCX</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-04-02</td>
-  <td class="num dim">2025-04-03</td>
-  <td class="num">1d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-835</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">MDLZ</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-18</td>
-  <td class="num dim">2025-04-01</td>
-  <td class="num">14d</td>
-  <td class="num pos">+2.50R</td>
-  <td class="num pos">$909</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">target</td>
-</tr><tr>
-  <td class="sym">MCD</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-14</td>
-  <td class="num dim">2025-03-27</td>
-  <td class="num">13d</td>
-  <td class="num pos">+2.50R</td>
-  <td class="num pos">$863</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">target</td>
-</tr><tr>
-  <td class="sym">IBM</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-18</td>
-  <td class="num dim">2025-03-20</td>
-  <td class="num">2d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-685</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">IBM</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-17</td>
-  <td class="num dim">2025-03-17</td>
-  <td class="num">0d</td>
-  <td class="num neg">-0.78R</td>
-  <td class="num neg">$-380</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">PG</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-17</td>
-  <td class="num dim">2025-03-17</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-285</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">unreconciled_exit</td>
-</tr><tr>
-  <td class="sym">CL</td>
-  <td>breakout</td>
-  <td></td>
-  <td class="num dim">2025-03-10</td>
-  <td class="num dim">2025-03-14</td>
-  <td class="num">4d</td>
-  <td class="num neg">-1.05R</td>
-  <td class="num neg">$-1,027</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">gap_through_stop</td>
-</tr><tr>
-  <td class="sym">IBM</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-12</td>
-  <td class="num dim">2025-03-14</td>
-  <td class="num">2d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-415</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">ABT</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-13</td>
-  <td class="num dim">2025-03-14</td>
-  <td class="num">1d</td>
-  <td class="num neg">-1.81R</td>
-  <td class="num neg">$-578</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">gap_through_stop</td>
-</tr><tr>
-  <td class="sym">DE</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-14</td>
-  <td class="num dim">2025-03-14</td>
-  <td class="num">0d</td>
-  <td class="num neg">-0.60R</td>
-  <td class="num neg">$-437</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">PLD</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-12</td>
-  <td class="num dim">2025-03-13</td>
-  <td class="num">1d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-343</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">TMUS</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-13</td>
-  <td class="num dim">2025-03-13</td>
-  <td class="num">0d</td>
-  <td class="num neg">-0.64R</td>
-  <td class="num neg">$-327</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">TMUS</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-12</td>
-  <td class="num dim">2025-03-12</td>
-  <td class="num">0d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-386</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">V</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-10</td>
-  <td class="num dim">2025-03-11</td>
-  <td class="num">1d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-331</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr><tr>
-  <td class="sym">PLD</td>
-  <td>pullback</td>
-  <td></td>
-  <td class="num dim">2025-03-10</td>
-  <td class="num dim">2025-03-11</td>
-  <td class="num">1d</td>
-  <td class="num neg">-1.00R</td>
-  <td class="num neg">$-334</td>
-  <td class="num dim">—</td>
-  <td class="num dim">—</td>
-  <td class="why">stop</td>
-</tr></tbody></table></div>
+<div class="scroll"><p class="empty">No closed trades yet.</p></div>
 
 <h2>Attribution</h2>
-<div class="scroll"><div class="tiles">
-  <div class="tile"><span class="k">trades</span><span class="v">49</span></div>
-  <div class="tile"><span class="k">win rate</span>
-    <span class="v">14%</span></div>
-  <div class="tile"><span class="k">expectancy</span>
-    <span class="v neg">-0.535R</span></div>
-  <div class="tile"><span class="k">profit factor</span>
-    <span class="v">0.37</span></div>
-</div><h3>By setup</h3><table class="tight">
-<thead><tr><th>bucket</th><th>n</th><th>win%</th><th>exp R</th>
-<th>total R</th><th></th></tr></thead><tbody><tr><td>pullback</td><td class='num'>47</td><td class='num'>15%</td><td class='num neg'>-0.495</td><td class='num'>-23.3</td><td class='dim'></td></tr><tr><td>breakout</td><td class='num'>2</td><td class='num'>0%</td><td class='num neg'>-1.472</td><td class='num'>-2.9</td><td class='dim'>thin</td></tr></tbody></table><h3>By regime at entry</h3><table class="tight">
-<thead><tr><th>bucket</th><th>n</th><th>win%</th><th>exp R</th>
-<th>total R</th><th></th></tr></thead><tbody><tr><td>trend</td><td class='num'>49</td><td class='num'>14%</td><td class='num neg'>-0.535</td><td class='num'>-26.2</td><td class='dim'></td></tr></tbody></table><h3>Shadow book — what was declined</h3><table class="tight">
-<thead><tr><th>reason</th><th>n</th><th>exp R</th><th>verdict</th></tr></thead>
-<tbody><tr><td>ranked_out</td><td class='num'>363</td><td class='num neg'>-0.384</td><td class='why'>FILTER IS COSTING YOU -- skipped trades beat taken ones</td></tr><tr><td>already_held</td><td class='num'>92</td><td class='num neg'>-0.425</td><td class='why'>FILTER IS COSTING YOU -- skipped trades beat taken ones</td></tr><tr><td>max_sector_exposure</td><td class='num'>30</td><td class='num neg'>-0.619</td><td class='why'>filter looks justified</td></tr><tr><td>unfilled</td><td class='num'>7</td><td class='num neg'>-0.420</td><td class='why'>insufficient sample</td></tr><tr><td>daily_loss_breaker</td><td class='num'>3</td><td class='num neg'>-0.509</td><td class='why'>insufficient sample</td></tr></tbody></table></div>
+<div class="scroll"><p class="empty">Not enough trades to attribute yet.</p></div>
 
 <footer>Read-only view of the state database. Nothing on this page can place,
 modify or cancel an order.</footer>

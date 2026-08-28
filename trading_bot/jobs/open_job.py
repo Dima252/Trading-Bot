@@ -16,6 +16,12 @@ from ..core.models import ActionKind, EntryType, EventFlags, MarketContext, Regi
 from .base import AgentContext, JobResult, constrain, execute, permitted, run_job
 
 NAME = "open"
+
+# A watchlist older than this is not acted on. If the evening job has been
+# failing, its entry prices are days stale and placing orders against them
+# would be trading yesterday's analysis at today's prices. Four days covers a
+# long weekend.
+MAX_WATCHLIST_AGE_DAYS = 4
 ALLOWED = {ActionKind.CLOSE, ActionKind.ADJUST_STOP, ActionKind.CANCEL, ActionKind.OPEN}
 
 
@@ -37,6 +43,15 @@ def _body(
     candidates = (
         ctx.repo.pending_candidates(candidate_day) if candidate_day else []
     )
+    if candidate_day is not None:
+        age = (ctx.day - candidate_day).days
+        if age > MAX_WATCHLIST_AGE_DAYS:
+            result.note(
+                f"STALE WATCHLIST: {candidate_day} is {age} days old -- "
+                "declining to place entries. Check whether the evening job is "
+                "running."
+            )
+            candidates = []
     result.note(
         f"{len(candidates)} pending candidates from "
         f"{candidate_day or 'no prior session'}"

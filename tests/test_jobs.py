@@ -356,3 +356,40 @@ def test_close_does_not_cancel_the_entry_it_just_submitted(ctx, monkeypatch) -> 
     assert opened, "expected at least one confirmed breakout"
     live = {o.ticker for o in ctx.broker.orders(open_only=True)}
     assert {a.ticker for a in opened} <= live
+
+
+# --- stale data must never look like a quiet market ----------------------- #
+
+
+def test_evening_fails_loudly_when_the_cache_is_stale(ctx, market) -> None:
+    """The scanner matches session dates exactly, so an unrefreshed cache makes
+    every symbol invisible and the scan returns a clean zero. Indistinguishable
+    from "no setups today" unless the job says so."""
+    universe, _, _ = market
+    future = universe["SPY"].days[-1] + timedelta(days=4)
+    while future.weekday() >= 5:  # must be a session, or the job just skips
+        future += timedelta(days=1)
+
+    result = evening.run(replace(ctx, day=future))
+
+    assert result.status == "error"
+    assert any("STALE DATA" in n for n in result.notes)
+    assert ctx.repo.latest_candidate_day() is None  # nothing written
+
+
+def test_open_declines_a_stale_watchlist(ctx) -> None:
+    """If the evening job has been failing, its entry prices are days old."""
+    evening.run(ctx)
+    assert ctx.repo.pending_candidates(ctx.day)
+
+    much_later = ctx.day + timedelta(days=open_job.MAX_WATCHLIST_AGE_DAYS + 3)
+    result = open_job.run(replace(ctx, day=much_later))
+
+    assert any("STALE WATCHLIST" in n for n in result.notes)
+    assert ctx.broker.orders(open_only=True) == []
+
+
+def test_a_fresh_watchlist_is_still_acted_on(ctx) -> None:
+    evening.run(ctx)
+    result = open_job.run(replace(ctx, day=ctx.day + timedelta(days=1)))
+    assert not any("STALE WATCHLIST" in n for n in result.notes)

@@ -22,6 +22,32 @@ DEFAULT_BARS = "data/bars.db"
 DEFAULT_STATE = "data/state.db"
 
 
+def load_env(path: str = ".env") -> int:
+    """Read KEY=VALUE lines from a .env file into the environment.
+
+    Existing environment variables always win, so an explicit `export` or a
+    systemd EnvironmentFile overrides the file rather than being silently
+    ignored. Ten lines instead of a dependency.
+    """
+    import os
+
+    file = pathlib.Path(path)
+    if not file.exists():
+        return 0
+
+    loaded = 0
+    for line in file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip().strip("\"'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+            loaded += 1
+    return loaded
+
+
 def _load_policy(path: str) -> Policy:
     try:
         return Policy.from_yaml(path)
@@ -557,6 +583,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_env()
     args = build_parser().parse_args(argv)
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,

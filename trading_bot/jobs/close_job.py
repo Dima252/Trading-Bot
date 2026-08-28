@@ -23,6 +23,12 @@ from ..core.models import ActionKind, Candidate, EntryType, MarketContext, Regim
 from .base import AgentContext, JobResult, constrain, execute, permitted, run_job
 
 NAME = "close"
+
+# A watchlist older than this is not acted on. If the evening job has been
+# failing, its entry prices are days stale and placing orders against them
+# would be trading yesterday's analysis at today's prices. Four days covers a
+# long weekend.
+MAX_WATCHLIST_AGE_DAYS = 4
 ALLOWED = {ActionKind.OPEN, ActionKind.CANCEL, ActionKind.CLOSE, ActionKind.ADJUST_STOP}
 
 
@@ -49,6 +55,12 @@ def _body(
 
     candidate_day = ctx.repo.latest_candidate_day(ctx.day)
     pending = ctx.repo.pending_candidates(candidate_day) if candidate_day else []
+    if candidate_day is not None and (ctx.day - candidate_day).days > MAX_WATCHLIST_AGE_DAYS:
+        result.note(
+            f"STALE WATCHLIST: {candidate_day} is "
+            f"{(ctx.day - candidate_day).days} days old -- declining entries."
+        )
+        pending = []
     breakouts = [c for c in pending if c.entry_type is EntryType.CLOSE_CONFIRM]
 
     confirmed, skipped = confirm(breakouts, prices, ctx.policy.max_entry_chase_pct)

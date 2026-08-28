@@ -39,6 +39,22 @@ def _body(ctx: AgentContext, result: JobResult, recon, run_id: int) -> None:
         return
 
     benchmark = universe[BENCHMARK]
+
+    # The scanner matches bars to the session date EXACTLY, so a cache that has
+    # not been refreshed past today makes every symbol invisible and the scan
+    # returns a clean, silent zero. That is indistinguishable from "no setups
+    # today" in the logs, and over months it would look like a quiet market
+    # rather than a broken pipeline. Fail loudly instead.
+    if benchmark.index_of(ctx.day) is None:
+        last = benchmark[-1].day if len(benchmark) else "never"
+        result.status = "error"
+        result.note(
+            f"STALE DATA: no {BENCHMARK} bar for {ctx.day} (cache ends {last}). "
+            "Run `fetch` after the close and before this job -- scanning now "
+            "would silently find nothing."
+        )
+        return
+
     tradeable = {s: b for s, b in universe.items() if s != BENCHMARK}
 
     liquid = set(liquidity_screen(tradeable, ctx.day))
