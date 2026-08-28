@@ -123,7 +123,11 @@ def _status_bar(repo: Repo, policy: Policy, today: date) -> str:
     equity = latest["equity"] if latest else None
     cash = latest["cash"] if latest else None
     heat = latest["heat_pct"] if latest else None
-    regime = latest["regime"] if latest else None
+    # The last row is not necessarily the last MEASURED regime: a run that
+    # errored writes an equity snapshot with a null one, and the tile then reads
+    # "—" on exactly the days when knowing the regime matters most. On a chop
+    # day this field is the whole explanation for why nothing was traded.
+    regime = repo.last_regime(today)
 
     week = None
     if equity is not None:
@@ -139,7 +143,7 @@ def _status_bar(repo: Repo, policy: Policy, today: date) -> str:
         ("cash", _money(cash), ""),
         (
             "heat",
-            f"{heat:.2%} / {policy.max_portfolio_heat:.0%}" if heat is not None else "—",
+            f"{heat:.2%} / {policy.max_portfolio_heat:.1%}" if heat is not None else "—",
             "warn" if heat and heat > policy.max_portfolio_heat else "",
         ),
         ("7-day", _pct(week), _cls(week)),

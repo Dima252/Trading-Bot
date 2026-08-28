@@ -193,3 +193,31 @@ def test_the_page_cannot_touch_the_broker() -> None:
     source = inspect.getsource(dashboard)
     for forbidden in ("submit_bracket", "close_position", "cancel_order", "Broker"):
         assert forbidden not in source
+
+
+def test_the_regime_survives_a_failed_run(tmp_path) -> None:
+    """The tile read the LAST equity row, and a run that errors writes one with
+    a null regime -- so it showed "—" on exactly the day the operator most needs
+    it. On a chop day the regime is the entire explanation for why the bot did
+    nothing, and a dash reads as "broken" rather than "correctly sitting out".
+    """
+    repo = Repo(":memory:")
+    repo.record_equity(DAY, cash=100_000, equity=100_000, regime="chop")
+    repo.record_equity(DAY + timedelta(days=1), cash=100_000, equity=100_000)
+
+    page = dashboard.render(repo, None, Policy(), as_of=DAY + timedelta(days=1))
+
+    assert ">chop<" in page
+
+
+def test_the_heat_limit_is_not_rounded_away(tmp_path) -> None:
+    """The shipped cap is 9.6%. Displaying it as "10%" misstates a risk limit
+    the operator is reading in order to trust it."""
+    repo = Repo(":memory:")
+    repo.record_equity(DAY, cash=100_000, equity=100_000, heat_pct=0.0)
+    policy = Policy.from_yaml("config/policy.yaml")
+
+    page = dashboard.render(repo, None, policy, as_of=DAY)
+
+    assert "9.6%" in page
+    assert "/ 10%" not in page
