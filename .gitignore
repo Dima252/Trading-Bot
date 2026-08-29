@@ -13,3 +13,4 @@ venv/
 
 # generated scratch -- regenerate with `dashboard`, `walkforward`, etc.
 out/
+logs/

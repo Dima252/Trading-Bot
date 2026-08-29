@@ -17,6 +17,7 @@ from .core.policy import Policy
 from .data.cache import BarCache
 from .db.repo import Repo
 from .market_hours import today_exchange
+from .provenance import DEVELOPMENT, contamination, describe_window
 
 DEFAULT_POLICY = "config/policy.yaml"
 DEFAULT_BARS = "data/bars.db"
@@ -192,9 +193,9 @@ def cmd_diagnose(args) -> int:
 # Once the shipping config was frozen to the holdout-tested variant, deriving
 # them from the live config would have silently redefined "baseline" and made
 # every recorded research result unreproducible.
-def _variants(_ignored: Policy | None = None) -> dict[str, Policy]:
+def _variants(shipped: Policy | None = None) -> dict[str, Policy]:
     base = Policy()
-    return {
+    variants = {
         "baseline": base,
         # depth_atr z=-12.1, rsi z=+16.4: the pullback quality score rewards
         # deep dips and low RSI, and the data says both signs are inverted.
@@ -281,6 +282,14 @@ def _variants(_ignored: Policy | None = None) -> dict[str, Policy]:
         ),
     }
 
+    # The config that actually ships, tested AS ITSELF rather than reconstructed
+    # from a variant definition that might have drifted from it. It is added
+    # rather than substituted: `baseline` stays pinned to the library defaults,
+    # so every recorded research result remains reproducible.
+    if shipped is not None and shipped.version != base.version:
+        variants["shipped"] = shipped
+    return variants
+
 
 def cmd_walkforward(args) -> int:
     from .backtest.walkforward import (
@@ -297,11 +306,33 @@ def cmd_walkforward(args) -> int:
         print(f"no {BENCHMARK} in the cache -- run `fetch` first", file=sys.stderr)
         return 1
 
-    universe = cache.load_many(symbols, min_bars=MIN_HISTORY)
+    universe = cache.load_many(
+        symbols, start=args.start, end=args.end, min_bars=MIN_HISTORY
+    )
+    if BENCHMARK not in universe:
+        print(
+            f"no {BENCHMARK} bars in {args.start} -> {args.end}", file=sys.stderr
+        )
+        return 1
     if CASH_RATE not in universe:
         print(f"note: no {CASH_RATE} cached -- idle cash will earn 0%")
+
+    days = universe[BENCHMARK].days
+    note = contamination(days[0], days[-1])
+    print(f"window: {days[0]} -> {days[-1]}  ({describe_window(days[0], days[-1])})")
+    if note:
+        print()
+        print(f"  !! {note}")
+        if not args.allow_contaminated:
+            print("  refusing -- pass --allow-contaminated to run it anyway.")
+            print(f"  the unseen development window is "
+                  f"{DEVELOPMENT[0]} -> {DEVELOPMENT[1]}.", file=sys.stderr)
+            return 1
+        print("  --allow-contaminated given; continuing under protest.")
+    print()
+
     folds, holdout = make_folds(
-        universe[BENCHMARK].days, n_folds=args.folds, holdout=not args.no_holdout
+        days, n_folds=args.folds, holdout=not args.no_holdout
     )
 
     base = _load_policy(args.policy)
@@ -630,6 +661,18 @@ def build_parser() -> argparse.ArgumentParser:
     wf.add_argument("--folds", type=int, default=4)
     wf.add_argument("--no-holdout", action="store_true")
     wf.add_argument("--only", nargs="*", help="restrict to named variants")
+    wf.add_argument(
+        "--start", type=date.fromisoformat, default=None,
+        help="first day of the fold range (default: all cached history)",
+    )
+    wf.add_argument(
+        "--end", type=date.fromisoformat, default=None,
+        help="last day of the fold range",
+    )
+    wf.add_argument(
+        "--allow-contaminated", action="store_true",
+        help="run over data that already informed a decision (produces no evidence)",
+    )
     wf.set_defaults(func=cmd_walkforward)
 
     hold = add("holdout", "spend the holdout on named variants -- ONE SHOT")
