@@ -51,6 +51,18 @@ class Policy:
     setup_time_stop_days: dict[str, int] = field(default_factory=dict)
     setup_max_hold_days: dict[str, int] = field(default_factory=dict)
 
+    # Which regimes each setup may OPEN in, overriding `tradeable_regimes`.
+    #
+    # The global list is all-or-nothing across setups, which forces a choice the
+    # system should not have to make: `regime_fit` rates mean_reversion 0.90 in
+    # chop and 0.40 in trend, and `tradeable_regimes: [trend]` then lets it fire
+    # only where it is rated worst. Opening chop globally to fix that would also
+    # admit the breakout setup, rated 0.30 there.
+    #
+    # Empty means "use tradeable_regimes for everything", so an unset policy is
+    # unchanged.
+    setup_regimes: dict[str, list[str]] = field(default_factory=dict)
+
     # --- rotation ---
     switching_premium: float = 1.3
     min_candidate_score: float = 40.0
@@ -122,8 +134,17 @@ class Policy:
         if self.switching_premium < 1.0:
             raise ValueError("switching_premium below 1.0 guarantees churn")
 
-    def may_open_in(self, regime: str) -> bool:
+    def may_open_in(self, regime: str, setup_type: str | None = None) -> bool:
+        """Whether a position may be OPENED. Exits are never gated by regime."""
+        if setup_type is not None and setup_type in self.setup_regimes:
+            return regime in self.setup_regimes[setup_type]
         return regime in self.tradeable_regimes
+
+    def any_setup_may_open_in(self, regime: str) -> bool:
+        """Whether ANY setup can trade here -- the cheap check before ranking."""
+        if regime in self.tradeable_regimes:
+            return True
+        return any(regime in allowed for allowed in self.setup_regimes.values())
 
     def fit_for(self, setup_type: str, regime: str) -> float:
         return self.regime_fit.get(setup_type, {}).get(regime, 0.5)

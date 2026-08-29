@@ -85,7 +85,10 @@ def decide(
     # spends capital: sitting out a regime must never mean sitting on a broken
     # position. An agent that cannot decline to trade is compulsive, not
     # autonomous (README section 5).
-    if not policy.may_open_in(context.regime.value):
+    # Asks whether ANY setup may trade here, not whether all may: a policy that
+    # permits only mean reversion in chop still has work to do in chop. Which
+    # setups specifically is settled per candidate, below.
+    if not policy.any_setup_may_open_in(context.regime.value):
         return actions
 
     # --- 3. RANK: holdings compete on the same scale as candidates ----- #
@@ -112,6 +115,7 @@ def decide(
         and c.score >= policy.min_candidate_score
         and c.event_flags.penalty < 1.0
         and c.is_valid
+        and policy.may_open_in(context.regime.value, c.setup_type.value)
     ]
 
     # --- 4 + 5. ROTATE AND ALLOCATE ------------------------------------ #

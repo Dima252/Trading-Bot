@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from tests.conftest import make_candidate, make_portfolio, make_position
@@ -157,6 +159,78 @@ def test_the_reason_names_which_horizon_fired(
     reason = exit_reason(old, context, quick) or ""
     assert "max hold" in reason
     assert "mean_reversion" in reason and "8d" in reason
+
+
+# --- 5c. per-setup regime permissions ------------------------------------ #
+
+
+def test_one_setup_can_trade_a_regime_the_others_cannot(
+    context: MarketContext, policy: Policy
+) -> None:
+    """`regime_fit` rates mean_reversion 0.90 in chop and 0.40 in trend, but a
+    global `tradeable_regimes: [trend]` lets it fire only where it is rated
+    worst. Opening chop for everything would admit breakout, rated 0.30 there.
+    """
+    from trading_bot.core.models import Regime
+
+    sleeve = policy.with_changes(
+        tradeable_regimes=["trend"],
+        setup_regimes={"mean_reversion": ["trend", "chop"]},
+    )
+    chop = replace(context, regime=Regime.CHOP)
+
+    assert sleeve.may_open_in("chop", "mean_reversion")
+    assert not sleeve.may_open_in("chop", "breakout")
+    assert sleeve.any_setup_may_open_in("chop"), "chop is no longer a dead regime"
+
+    snap = make_candidate("SNAP", setup_quality=90.0,
+                          setup_type=SetupType.MEAN_REVERSION)
+    ride = make_candidate("RIDE", setup_quality=95.0,
+                          setup_type=SetupType.BREAKOUT)
+    actions = decide(make_portfolio([]), [snap, ride], chop, sleeve)
+
+    opened = [a.ticker for a in actions if a.kind is ActionKind.OPEN]
+    assert opened == ["SNAP"], "the higher-scoring breakout must still be barred"
+
+
+def test_a_regime_no_setup_allows_still_returns_early(
+    context: MarketContext, policy: Policy
+) -> None:
+    """The cheap gate has to keep working, or every untradeable session pays
+    for a full ranking pass over 500 names."""
+    from trading_bot.core.models import Regime
+
+    sleeve = policy.with_changes(
+        tradeable_regimes=["trend"], setup_regimes={"mean_reversion": ["chop"]}
+    )
+    assert not sleeve.any_setup_may_open_in("high_vol")
+
+    high_vol = replace(context, regime=Regime.HIGH_VOL)
+    cand = make_candidate("ANY", setup_quality=99.0,
+                          setup_type=SetupType.MEAN_REVERSION)
+    assert decide(make_portfolio([]), [cand], high_vol, sleeve) == []
+
+
+def test_an_unset_policy_gates_exactly_as_before(policy: Policy) -> None:
+    assert policy.setup_regimes == {}
+    for regime in ("trend", "chop", "high_vol"):
+        for setup in ("breakout", "pullback", "mean_reversion"):
+            assert policy.may_open_in(regime, setup) == policy.may_open_in(regime)
+
+
+def test_the_regime_gate_never_blocks_an_exit(
+    context: MarketContext, policy: Policy
+) -> None:
+    """Sitting out a regime must never mean sitting on a broken position."""
+    from trading_bot.core.models import Regime
+
+    shut = policy.with_changes(tradeable_regimes=[], setup_regimes={})
+    broken = make_position("BAD", current_price=94.0, stop=95.0)
+
+    actions = decide(
+        make_portfolio([broken]), [], replace(context, regime=Regime.CHOP), shut
+    )
+    assert kinds(actions) == [ActionKind.CLOSE]
 
 
 # --- 6. stop maintenance ------------------------------------------------ #
