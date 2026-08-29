@@ -1104,6 +1104,66 @@ is worse.
 
 ---
 
+## 5f-R2. THE CORRECTED GO/NO-GO -- 3 of 3, and one setup carries all of it
+
+Re-run on the screened harness. Full output in `records/gonogo_screened.txt`
+and `records/gonogo_screened_sigma.txt`.
+
+| Fold | trades | exp R (before -> after) | Sharpe | maxDD |
+|---|---|---|---|---|
+| F1 1994-99 | 242 | **-0.068 -> +0.104** | -0.32 -> 0.16 | 28.3% -> 17.2% |
+| F2 1999-04 | 141 | +0.109 -> +0.077 | 0.27 -> 0.01 | 12.5% -> 19.5% |
+| F3 2004-09 | 220 | +0.183 -> +0.091 | 0.73 -> 0.31 | 11.5% -> 11.1% |
+| F4 2009-13 | 212 | +0.248 -> **+0.357** | 0.81 -> **1.01** | 9.8% -> 17.4% |
+
+Mean **+0.157R**, positive in **4 of 4** folds, against baseline's +0.025. All
+three pre-registered criteria met, and more strongly than the first run.
+
+**F1 flipped sign.** The instinct that F1 was a universe problem was right; the
+explanation recorded in 5f was backwards. The screen was not excluding good
+names -- its absence was admitting illiquid 1990s names that lost money.
+
+### Significance, measured on the screened trades
+
+```
+816 trades   mean +0.1533R   MEASURED sigma 1.4631
+SE 0.0512    t = 2.99        p ~ 0.003
+```
+
+Sigma re-measured rather than carried over from the unscreened run, which would
+have reported t = 3.22. The edge is real; the number was 8% optimistic.
+
+### The full period, screened
+
+| | Strategy | SPY |
+|---|---|---|
+| CAGR | 6.84% | 9.15% |
+| max drawdown | **19.57%** | 55.19% |
+| return / drawdown | **13.84** | 8.46 |
+| Sharpe | 0.37 | -- |
+
+Screening cut max drawdown from 28.34% to **19.57%** while leaving Sharpe
+unchanged. On return per unit of drawdown it now beats the index by a wide
+margin -- 13.84 against 8.46 -- while still losing 2.31pp a year on raw return.
+
+### The finding that matters most: it is one setup
+
+| Setup | n | win% | exp R | t | total R |
+|---|---|---|---|---|---|
+| **pullback** | 657 | 39.7% | **+0.201** | **3.52** | **+131.9** |
+| breakout | 158 | 43.7% | -0.046 | -0.40 | -7.2 |
+| mean_reversion | **1** | -- | -- | -- | +0.4 |
+
+**Pullback is the entire system.** It contributes +131.9R against a total of
++125.1R -- the other two subtract. Breakout is a net drag over 158 trades,
+though not significantly negative. And mean_reversion fired **once in twenty
+years**, which retrospectively explains sleeve B completely: there was never a
+mean-reversion sleeve to unlock, because the detector almost never triggers.
+
+Three setups were built. One works, one is dead weight, one is vestigial.
+
+---
+
 ## 5g. SLEEVE B -- pre-registered 2026-08-29, before implementing anything
 
 The go/no-go passed 3/3, which licenses building the second sleeve. Reading the
