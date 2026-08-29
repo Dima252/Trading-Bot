@@ -451,6 +451,12 @@ h1{font-size:15px;margin:0 0 10px;letter-spacing:.14em;text-transform:uppercase;
 .headline{font-size:clamp(34px,6vw,46px);font-weight:650;line-height:1;
   letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:0}
 .headline .delta{font-size:16px;font-weight:600;margin-left:12px;letter-spacing:0}
+.about{max-width:74ch;color:var(--dim);font-size:13.5px;line-height:1.6;
+  margin:0 0 24px;padding:14px 18px;background:var(--panel);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0}
+.about a{color:var(--accent)}
+.about strong{color:var(--fg)}
 .sub{color:var(--faint);margin:8px 0 0;font-size:12.5px;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .sub code{background:none;padding:0;color:var(--dim)}
@@ -569,8 +575,15 @@ def render(
     <p class="headline">{_headline(repo, today)}</p>
   </div>
   <p class="sub">policy {esc(policy.version)} · as of {esc(today)}<br>
-  generated {esc(generated)} · paper account</p>
+  generated {esc(generated)}</p>
 </div>
+
+<p class="about">An autonomous swing-trading agent for US equities: it scans
+~500 names nightly, decides what the portfolio should look like tomorrow, and
+places bracketed orders through a broker API on a schedule — no daemon, no
+manual input. <strong>Trading a paper account. No real money is involved.</strong>
+Every figure below comes from its own state database.
+<a href="https://github.com/Dima252/Trading-Bot">Source and research log</a>.</p>
 
 {_status_bar(repo, policy, today)}
 

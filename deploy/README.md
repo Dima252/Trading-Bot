@@ -101,6 +101,31 @@ Two different problems needing two different answers:
 The second is the one not to skip. `python -m trading_bot status` prints which
 are wired, because silence is not proof of health.
 
+## Publishing it publicly
+
+```bash
+bash deploy/publish.sh
+```
+
+Renders the dashboard to `docs/index.html`, commits it and pushes. GitHub Pages
+serves `docs/` on the default branch, so publishing is a commit — no hosting to
+pay for and no port to expose.
+
+**Enable it once**, in the repository: Settings → Pages → Source *Deploy from a
+branch* → branch `main`, folder `/docs`. The URL is then
+`https://<user>.github.io/<repo>/`.
+
+What gets published is the **static** dashboard. It has no halt switch and no
+route that could reach an order — that control lives only in `serve`, which
+stays on localhost. Two tests enforce the distinction.
+
+On a host this needs push credentials. A **deploy key scoped to this one
+repository** is the right shape; a personal access token with account-wide
+access is not.
+
+The script skips the commit when the numbers have not moved, so an idle week
+does not fill the history with empty commits.
+
 ## Dashboard
 
 ```bash

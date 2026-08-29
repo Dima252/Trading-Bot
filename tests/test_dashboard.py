@@ -117,8 +117,10 @@ def test_writes_a_self_contained_file(repo: Repo, cache: BarCache, tmp_path) -> 
     text = out.read_text(encoding="utf-8")
 
     assert out.exists()
-    # nothing may be fetched from outside the file
-    for marker in ("http://", "https://", "<script", "src=", "@import"):
+    # Nothing may be FETCHED from outside the file. An anchor is fine -- it
+    # loads nothing until someone clicks it, and a page meant to be linked
+    # from elsewhere should be able to link back.
+    for marker in ("<script", "src=", "@import", "<link", "url("):
         assert marker not in text, f"external asset or script: {marker}"
 
 
@@ -261,7 +263,7 @@ def test_the_page_stays_self_contained_after_restyling(
     out = dashboard.write(repo, tmp_path / "d.html", cache, as_of=DAY)
     text = out.read_text(encoding="utf-8")
 
-    for marker in ("http://", "https://", "<script", "src=", "@import", "fonts."):
+    for marker in ("<script", "src=", "@import", "<link", "fonts.", "url("):
         assert marker not in text, f"external dependency: {marker}"
 
 

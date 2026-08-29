@@ -110,7 +110,23 @@ def test_scheduled_commands_are_real_subcommands() -> None:
             assert name in known, f"{name!r} is not a trading_bot subcommand"
 
 
-@pytest.mark.parametrize("name", ["setup.sh", "crontab.template", "README.md"])
+def test_publish_only_ships_the_static_dashboard() -> None:
+    """The public page must have no control surface. `serve` carries the halt
+    switch; the static render carries nothing that can reach an order."""
+    source = (DEPLOY / "publish.sh").read_text(encoding="utf-8")
+    assert "trading_bot dashboard" in source
+    assert "trading_bot serve" not in source
+
+
+def test_publish_does_not_commit_when_nothing_changed() -> None:
+    """An empty commit every evening turns the history into noise."""
+    source = (DEPLOY / "publish.sh").read_text(encoding="utf-8")
+    assert "git diff --quiet" in source
+
+
+@pytest.mark.parametrize(
+    "name", ["setup.sh", "crontab.template", "publish.sh", "README.md"]
+)
 def test_deploy_artifacts_are_present(name: str) -> None:
     assert (DEPLOY / name).is_file()
 

@@ -30,8 +30,10 @@ BOT=/opt/trading-bot
 # 18:15  the main think: reconcile, scan, write tomorrow's watchlist
 15 18 * * 1-5 cd $BOT && ./venv/bin/python -m trading_bot evening   >> logs/bot.log 2>&1
 
-# 18:30  regenerate the static dashboard
-30 18 * * 1-5 cd $BOT && ./venv/bin/python -m trading_bot dashboard --out out/dashboard.html >> logs/bot.log 2>&1
+# 18:30  regenerate the static dashboard and publish it to GitHub Pages.
+#        The published page is the STATIC one -- no halt switch, no route that
+#        could reach an order. Needs a deploy key scoped to this repo.
+30 18 * * 1-5 cd $BOT && bash deploy/publish.sh >> logs/bot.log 2>&1
 
 # 17:30 Sunday  refresh the earnings calendar. Dates move, and a stale calendar
 #        silently stops blocking -- which looks identical to having nothing to
