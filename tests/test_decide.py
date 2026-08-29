@@ -15,6 +15,7 @@ from trading_bot.core import (
     exit_reason,
     trailed_stop,
 )
+from trading_bot.core.models import SetupType
 
 
 def kinds(actions) -> list[ActionKind]:
@@ -94,6 +95,68 @@ def test_max_hold_days(context: MarketContext, policy: Policy) -> None:
     )
     actions = decide(make_portfolio([ancient]), [], context, policy)
     assert "max hold" in actions[0].reason
+
+
+# --- 5b. per-setup exit horizons ---------------------------------------- #
+
+
+def test_a_setup_can_carry_its_own_time_stop(
+    context: MarketContext, policy: Policy
+) -> None:
+    """One global horizon has to be wrong for at least one setup. A mean
+    reversion entry targets the 20-day mean because its own docstring says
+    "holding for 3R turns a good win rate into a bad one" -- its thesis
+    resolves in days. The shipped config held it for up to 60."""
+    quick = policy.with_changes(setup_time_stop_days={"mean_reversion": 5})
+    stalled = make_position(
+        "SNAP", entry_price=100.0, current_price=101.0, stop=95.0, days_held=7,
+        setup_type=SetupType.MEAN_REVERSION,
+    )
+
+    # the global time stop is 10 days, so without the override this is fine
+    assert exit_reason(stalled, context, policy) is None
+    assert "time stop" in (exit_reason(stalled, context, quick) or "")
+
+
+def test_the_override_is_scoped_to_its_own_setup(
+    context: MarketContext, policy: Policy
+) -> None:
+    """Shortening mean reversion must not shorten the trend setups it sits
+    alongside -- that would silently reintroduce the 10-day time stop that
+    measured worse than holding to 40."""
+    quick = policy.with_changes(setup_time_stop_days={"mean_reversion": 5})
+    trend_trade = make_position(
+        "RIDE", entry_price=100.0, current_price=101.0, stop=95.0, days_held=7,
+        setup_type=SetupType.BREAKOUT,
+    )
+
+    assert exit_reason(trend_trade, context, quick) is None
+
+
+def test_an_unset_policy_behaves_exactly_as_before(
+    context: MarketContext, policy: Policy
+) -> None:
+    """The override defaults to empty, so every existing config keeps the
+    horizons it was validated with."""
+    assert policy.setup_time_stop_days == {}
+    assert policy.time_stop_for("mean_reversion") == policy.time_stop_days
+    assert policy.max_hold_for("breakout") == policy.max_hold_days
+
+
+def test_the_reason_names_which_horizon_fired(
+    context: MarketContext, policy: Policy
+) -> None:
+    """With per-setup horizons the decision log has to say whose limit was
+    reached, or a 5-day exit next to a 40-day one is unreadable."""
+    quick = policy.with_changes(setup_max_hold_days={"mean_reversion": 8})
+    old = make_position(
+        "SNAP", entry_price=100.0, current_price=115.0, stop=95.0, days_held=9,
+        setup_type=SetupType.MEAN_REVERSION,
+    )
+
+    reason = exit_reason(old, context, quick) or ""
+    assert "max hold" in reason
+    assert "mean_reversion" in reason and "8d" in reason
 
 
 # --- 6. stop maintenance ------------------------------------------------ #

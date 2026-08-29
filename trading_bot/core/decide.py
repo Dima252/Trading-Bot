@@ -225,11 +225,17 @@ def exit_reason(pos: Position, ctx: MarketContext, policy: Policy) -> str | None
         )
 
     days = pos.days_held(ctx.as_of)
-    if days >= policy.max_hold_days:
-        return f"max hold reached: {days}d"
+    setup = pos.setup_type.value
 
-    if days >= policy.time_stop_days and pos.unrealized_r < policy.time_stop_min_r:
-        return f"time stop: {pos.unrealized_r:.2f}R after {days}d"
+    # The horizon belongs to the setup, not to the book. A snap-back thesis is
+    # either right within days or it was wrong; a trend ride needs weeks.
+    max_hold = policy.max_hold_for(setup)
+    if days >= max_hold:
+        return f"max hold reached: {days}d (limit {max_hold}d for {setup})"
+
+    time_stop = policy.time_stop_for(setup)
+    if days >= time_stop and pos.unrealized_r < policy.time_stop_min_r:
+        return f"time stop: {pos.unrealized_r:.2f}R after {days}d ({setup})"
 
     return None
 

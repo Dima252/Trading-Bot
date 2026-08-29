@@ -40,6 +40,17 @@ class Policy:
     trail_trigger_r: float = 1.5
     trail_atr_mult: float = 2.0
 
+    # Per-setup exit horizons, overriding the two above. One global horizon has
+    # to be wrong for at least one setup: a mean-reversion entry targets the
+    # 20-day mean because "holding for 3R turns a good win rate into a bad one"
+    # -- its thesis resolves in days -- while a breakout ride needs weeks. The
+    # shipped config held both for up to 60 days.
+    #
+    # Empty means "use the global values", so an unset policy behaves exactly as
+    # it did before.
+    setup_time_stop_days: dict[str, int] = field(default_factory=dict)
+    setup_max_hold_days: dict[str, int] = field(default_factory=dict)
+
     # --- rotation ---
     switching_premium: float = 1.3
     min_candidate_score: float = 40.0
@@ -116,6 +127,14 @@ class Policy:
 
     def fit_for(self, setup_type: str, regime: str) -> float:
         return self.regime_fit.get(setup_type, {}).get(regime, 0.5)
+
+    def time_stop_for(self, setup_type: str) -> int:
+        """Days before an unresolved position is cut, for this setup."""
+        return self.setup_time_stop_days.get(setup_type, self.time_stop_days)
+
+    def max_hold_for(self, setup_type: str) -> int:
+        """Days before a position is closed regardless, for this setup."""
+        return self.setup_max_hold_days.get(setup_type, self.max_hold_days)
 
     def with_changes(self, **kwargs: Any) -> Policy:
         """Produce a new version. Never mutate a policy in place -- trades
