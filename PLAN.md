@@ -565,6 +565,86 @@ before real money, not before paper.
 
 ---
 
+## 5g-R. SLEEVE B FAILED, and my diagnosis of it was wrong
+
+Run as pre-registered on the development window. Full output in
+`records/sleeve_b_1993_2013.txt`.
+
+| Variant | Trades | Mean exp R | Mean Sharpe | Mean maxDD | +folds |
+|---|---|---|---|---|---|
+| shipped (sleeve A) | 847 | +0.118 | **0.372** | 15.54% | 3/4 |
+| `sleeve_b_horizon` (H1) | 847 | +0.118 | 0.372 | 15.54% | 3/4 |
+| `sleeve_b_regime` (H2) | 1164 | +0.119 | 0.432 | 20.17% | 3/4 |
+| **`sleeve_b`** (both) | 1221 | **+0.073** | **0.285** | 20.21% | 3/4 |
+
+| Criterion | Result | |
+|---|---|---|
+| positive in >=3 of 4 folds | 3/4 | PASS |
+| correlation to sleeve A < 0.5 | not evaluable -- see below | -- |
+| combined Sharpe > A alone | 0.285 vs 0.372 | **FAIL** |
+
+**Sleeve B as specified fails.**
+
+### H1 was refuted twice over
+
+`sleeve_b_horizon` is byte-identical to `shipped` in all four folds. Not
+similar -- identical. The per-setup horizon changed nothing because
+**mean_reversion never trades under the shipped config at all.**
+
+Counting candidates over 400 sessions ending 2009-01:
+
+| Setup | Candidates | Share |
+|---|---|---|
+| pullback | 18,163 | 97.3% |
+| breakout | 425 | 2.3% |
+| **mean_reversion** | **87** | **0.47%** |
+
+87 candidates, competing for `max_new_positions_per_day = 3` against 18,163
+pullbacks. It does not lose the ranking occasionally; it effectively never wins
+a slot.
+
+And where H1 *did* bite -- on the chop trades H2 unlocked -- it made things
+worse: `sleeve_b` scores +0.073R against `sleeve_b_regime`'s +0.119R. Cutting a
+mean-reversion trade at 5-10 days is worse than letting it run. **That is the
+same lesson the original research already recorded** -- the 10-day time stop
+fired 295 times at +0.037R and moving to 40 days was one of the two corrections
+that worked. I re-derived a refuted hypothesis in a new costume and it failed
+the same way.
+
+### The diagnosis in section 5g was wrong
+
+I wrote that "most of sleeve B already exists and is being actively suppressed",
+and that the regime gate was suppressing it. It is not suppressed. It barely
+generates signal, and what it generates cannot compete.
+
+**A setup producing 0.47% of candidates cannot be a sleeve.** A second return
+stream needs its own signal volume, comparable to pullback's. That is a build,
+not an unlock, and section 5g underestimated it completely.
+
+### What H2 showed, and why it is not adopted here
+
+`sleeve_b_regime` alone did modestly better than shipped on Sharpe (0.432 vs
+0.372) across 317 extra trades, because in chop the trend setups are gated out
+and mean_reversion faces no competition for slots. It also raised mean drawdown
+from 15.54% to 20.17%.
+
+H2 was pre-registered as a variant, so *measuring* it is planned rather than
+post-hoc. **Adopting it as "sleeve B passed" would not be** -- that is
+redefining the criteria after seeing the numbers, which is the failure the whole
+protocol exists to prevent. If H2 is worth having it needs its own
+pre-registration and its own test.
+
+### Criterion 2 was unmeasurable, which is itself a finding
+
+The correlation test assumed sleeve B would be a separable return stream. It is
+not: these variants are one book with different permissions, and there are no
+two series to correlate. **The architecture in the strategy document assumes
+sleeves that can be sized and combined independently, and this codebase cannot
+express that.** Per-sleeve capital allocation is a structural change, and it is
+a prerequisite for the whole three-sleeve design -- not a detail.
+
+---
+
 ## 5e. Repo audit (session 4)
 
 Removed as unused, verified by reference scan:
