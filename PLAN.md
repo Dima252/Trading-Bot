@@ -733,6 +733,71 @@ exist, not a filtered list of surviving companies.
 
 ---
 
+## 5i-R. SLEEVE C FAILED -- 2 of 4, and the cause was in my own design
+
+Development window 2004-2013, 119 months. Full output in
+`records/sleeve_c_correlation.txt`.
+
+| | CAGR | vol | Sharpe | maxDD |
+|---|---|---|---|---|
+| sleeve A alone | 11.88% | 9.72% | **1.01** | **9.10%** |
+| sleeve C alone | 7.16% | 9.17% | 0.55 | 21.86% |
+| A 75% + C 25% | 10.79% | 8.54% | 1.02 | 12.03% |
+| A 50% + C 50% | 9.63% | 8.00% | 0.94 | 15.33% |
+
+| Criterion | Result | |
+|---|---|---|
+| 1. positive net of costs | +7.16% CAGR | PASS |
+| 2. **correlation to A below 0.30** | **+0.435** | **FAIL** |
+| 3. Sharpe above 0.40 | 0.55 | PASS |
+| 4. A+C beats A on Sharpe **and** drawdown | every blend is deeper | **FAIL** |
+
+### The cause, and it was visible before the run
+
+```
+sleeve C vs SPY correlation   +0.680
+universe                      15 of 26 instruments are equity (58%)
+average book                  61% of invested capital sat in equities
+```
+
+I built a sleeve described as "multi-asset", gave it a universe that was 58%
+equity -- SPY, QQQ, IWM, EFA, EEM, EWJ and nine US sector SPDRs -- and made it
+long-only. Long-only plus equity-heavy is a beta proxy with a trend filter. It
+correlates with sleeve A because most of the time both are long US equities.
+
+The published results this was modelled on are **long-short across futures**,
+where equities are a minority of the risk. I kept the signal and discarded the
+property that made it a diversifier, and the universe composition was sitting in
+the file I wrote before a single backtest ran.
+
+### Why the obvious fix is a trap
+
+Capping equity exposure would leave a book dominated by bonds and commodities.
+Over 2004-2013 bonds delivered an exceptional run as yields fell from ~4.5% to
+zero -- **a regime that cannot repeat from today's rates.** A sleeve tuned to
+load on that window would be fitting a one-off, and the ETF histories give no
+earlier window to check it against: bond ETFs begin 2002, commodities 2004-2006.
+
+That is a structural limit on testing this strategy with this data, not a
+parameter to adjust.
+
+### What the run is nonetheless worth
+
+Sleeve A over 2004-2013 measures Sharpe **1.01** at a 9.10% drawdown -- far
+better than its 20-year figures. That is the window flattering it: 2004-2013 is
+F3 and F4, its two strongest folds, and monthly returns understate drawdown risk
+relative to daily. **It is not a general estimate of sleeve A**, and it must not
+be quoted as one.
+
+### Second design iteration, and the honest cost of that
+
+This is now the second sleeve to fail after implementation. Each redesign after
+seeing a result raises the chance the eventual survivor is fitted rather than
+real. The validation window 2014-2019 remains unspent, and it stays unspent
+until a design goes into it once.
+
+---
+
 ## 5e. Repo audit (session 4)
 
 Removed as unused, verified by reference scan:
