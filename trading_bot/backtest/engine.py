@@ -42,12 +42,26 @@ from .records import BacktestResult, EquityPoint, ShadowRecord, TradeRecord
 from .simulate import simulate_forward
 
 
+def liquid_sets(
+    universe: dict[str, BarSeries], days: list[date], top_n: int | None = None
+) -> dict[date, set[str]]:
+    """The tradeable set for each day, computed once and shared by variants.
+
+    The screen depends only on bars, never on policy, so a walk-forward can pay
+    for it once rather than once per variant.
+    """
+    from ..data.universe import liquidity_screen
+
+    return {d: set(liquidity_screen(universe, d, top_n=top_n)) for d in days}
+
+
 def precompute_candidates(
     universe: dict[str, BarSeries],
     indicators: dict[str, Indicators],
     sectors: dict[str, str],
     policy: Policy,
     days: list[date],
+    liquid_by_day: dict[date, set[str]] | None = None,
 ) -> dict[date, list[Candidate]]:
     """Every candidate the scanner would emit, for every day, up front.
 
@@ -68,6 +82,11 @@ def precompute_candidates(
         sector = sectors.get(symbol, "UNKNOWN")
         for i, bar in enumerate(series.bars):
             if i < MIN_HISTORY or bar.day not in wanted:
+                continue
+            # The live scanner screens for liquidity before scanning; without
+            # the same filter here the backtest trades names the live system
+            # would refuse, and measures a system that will never run.
+            if liquid_by_day is not None and symbol not in liquid_by_day[bar.day]:
                 continue
             out[bar.day].extend(find_setups(series, ind, i, sector, policy))
 

@@ -798,6 +798,91 @@ until a design goes into it once.
 
 ---
 
+## 5j. What the literature says, and what it implies for this project
+
+Researched 2026-08-29 after two sleeves failed. Sources in the session log; the
+findings that changed my view are below.
+
+### Failure is the base rate, and its causes are known
+
+70-90% of retail systematic strategies fail live. The named causes are
+overfitting, ignored transaction costs, and regime change. What separates the
+survivors is a **statistical edge validated rigorously** rather than a well
+tuned backtest -- and **specialisation** in one style, market and timeframe.
+
+By that standard this project's process is in good order. The go/no-go was
+pre-registered, run once on 20 unseen years, and measured rather than assumed
+(t = 2.47). Very little retail work does that.
+
+### Edges persist when something structural stops them being arbitraged
+
+The distinction that matters:
+
+| Edge | Cause | Fate |
+|---|---|---|
+| Pairs stat-arb | nobody had noticed | 8% alpha -> 2% as quants arrived |
+| WTI seasonality | physical demand cycles | held 20+ years |
+| PEAD | behavioural underreaction | still documented in 2025 |
+| Microcap momentum | institutions **cannot** participate | persists |
+
+An edge that exists because others have not noticed decays on discovery. An
+edge that exists because others *cannot compete* does not.
+
+### The uncomfortable implication: the universe is the problem
+
+Sleeve A trades the S&P 500 -- the most analysed, most arbitraged, most
+institutionally owned equity universe in existence. Every quant fund runs
+momentum and mean reversion on those exact names.
+
+**That is why sleeves B and C both correlated.** Neither failed from bad
+implementation. Both were fishing the same pond as sleeve A, so of course their
+returns moved together. Adding a fourth would do the same.
+
+The genuine retail advantage is **capacity**: institutions avoid microcaps
+because of liquidity limits, fee economics that cannot fund a dedicated team,
+and analyst coverage of 2-5 names against 30+ for large caps. A $100k account
+can trade where a $1bn fund cannot.
+
+### Both promising directions are blocked on data
+
+**Microcaps** need a survivorship-free, point-in-time universe. CRSP is the
+academic standard and is expensive; free sources carry only survivors, and
+microcaps delist constantly. Untestable here, not merely difficult.
+
+**PEAD** needs announcement dates. Yahoo's `quoteSummary` endpoint now returns
+401 without authentication. The price-based surprise proxy (announcement-day
+return) would avoid needing analyst estimates, but the dates are still required.
+
+### Recalibrating our own numbers
+
+CRSP measures survivorship-free US equity returns at **7.4% against 9.0%** for
+the biased equivalent -- a 1.6pp annual overstatement.
+
+Applied to sleeve A's 7.08% CAGR over 1994-2013, the honest figure is roughly
+**5.5%**. That is the number to plan against, and it is below what the strategy
+document assumed throughout.
+
+### On tools, an argument against the obvious upgrade
+
+The 2026 consensus is VectorBT for research speed, NautilusTrader for execution
+realism; Backtrader has been in maintenance mode since 2023.
+
+**I would keep the hand-rolled engine.** Its slowness -- 20-40 minutes per
+experiment -- has been forcing pre-registration and preventing parameter
+fishing. Given that overfitting is the named primary cause of failure, and given
+that two confident diagnoses produced two failures in a single session, the
+ability to run a thousand variants quickly is a liability here rather than an
+asset. The engine is also fully understood and has had seven silent bugs found
+and fixed in it, which a new framework would not have.
+
+### Therefore: stop adding sleeves
+
+The literature's own advice is to specialise, and there is exactly one validated
+edge. A third sleeve designed the way the last two were is the overfitting
+pattern the research describes, executed deliberately.
+
+---
+
 ## 5e. Repo audit (session 4)
 
 Removed as unused, verified by reference scan:
@@ -972,6 +1057,50 @@ against until an era-relative screen makes F1 informative.
 Survivorship bias inflates every absolute number here. 288% total return over
 the period is not something anyone could have earned; the *comparison* between
 variants is what survives, which is why all three criteria were comparative.
+
+---
+
+## 5f-C. CORRECTION: the backtest was not applying the liquidity screen
+
+Found 2026-08-29 while implementing an era-relative screen. The explanation
+recorded in 5f and 5f-R for F1's failure was **wrong**, and the reason is worse
+than the explanation.
+
+### What I claimed, and what is actually true
+
+I wrote that F1 was universe-constrained because only 17 of 292 available names
+passed the liquidity screen in 1995, and that its failure should be read as low
+power rather than as evidence against the edge.
+
+**The backtest never applied the screen.** `liquidity_screen` is called in
+`jobs/evening.py` and nowhere else; `precompute_candidates` scanned every symbol
+with enough history regardless of price or volume. F1 had access to all 292
+names, not 17. The limitation I pre-registered described the live system, and
+the test was not running the live system.
+
+### The real defect
+
+This is the **third live-vs-backtest divergence** in this project, after the
+hardcoded TREND regime and the four trade-recording bugs. The pattern is
+identical each time: two components that are individually correct, and nobody
+checking that the thing being measured is the thing that will run.
+
+The direction matters. The backtest was **more permissive** than live -- it
+could trade illiquid 1990s names at idealised fills that the live system would
+refuse outright. So the go/no-go measured a system with a wider, easier universe
+than the deployed one, and F1 still lost money.
+
+### Fixed, and the go/no-go re-run
+
+`precompute_candidates` now takes the per-day liquid set, and `walkforward`
+computes it once and shares it across variants since it depends only on bars.
+Backtest and live now screen identically.
+
+The go/no-go is re-run below on the corrected harness. Re-running after a
+harness fix is not the same as re-running until a result is liked -- the
+project's own rule already exempts defects ("fixing a crash is not a strategy
+change") -- but the result stands or falls on what comes back, including if it
+is worse.
 
 ---
 

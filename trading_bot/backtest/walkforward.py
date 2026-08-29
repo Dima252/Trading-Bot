@@ -138,7 +138,7 @@ def run_walkforward(
     cash_rate_symbol: str | None = None,
     progress: bool = True,
 ) -> WalkForward:
-    from .engine import precompute_candidates
+    from .engine import liquid_sets, precompute_candidates
 
     if progress:
         print(f"  computing indicators for {len(universe)} symbols...", flush=True)
@@ -156,12 +156,18 @@ def run_walkforward(
         for d in universe[benchmark].days
         if folds[0].start <= d <= folds[-1].end
     )
+    # The same liquidity screen the live scanner applies. Computed once here
+    # because it depends only on bars, and shared by every variant.
+    if progress:
+        print(f"  screening {len(span)} sessions for liquidity...", flush=True)
+    liquid = liquid_sets(tradeable, span)
+
     scans: dict[str, dict] = {}
     for name, policy in variants.items():
         if progress:
             print(f"  scanning {len(span)} sessions for {name}...", flush=True)
         scans[name] = precompute_candidates(
-            tradeable, shared, sectors, policy, span
+            tradeable, shared, sectors, policy, span, liquid_by_day=liquid
         )
 
     out = WalkForward(baseline=baseline, folds=folds)

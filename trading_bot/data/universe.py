@@ -146,24 +146,51 @@ def liquidity_screen(
     min_price: float = 10.0,
     min_dollar_volume: float = 20_000_000.0,
     lookback: int = 20,
+    top_n: int | None = None,
 ) -> list[str]:
     """Names tradeable AS OF `day`.
 
     Computed from the bars themselves at that date rather than from a
     present-day snapshot, so the screen itself is at least point-in-time even
     though the ticker list is not.
+
+    Two modes:
+
+    **Absolute** (the default, and what the live system uses). A price floor and
+    a dollar-volume floor in today's money.
+
+    **Relative** (`top_n`). The most liquid N names as of that date. The
+    absolute floors are anachronistic run backwards: $20M a day was a great deal
+    of volume in 1995 and is unremarkable now, and the $10 price floor is
+    applied to SPLIT-ADJUSTED prices, so a stock that traded at $50 in 1993 and
+    has split twice since reads as $3 and is excluded for no economic reason.
+    Together they passed 17 of 292 available names in 1995 against 466 of 484 in
+    2019, which makes an early-period backtest a test of a handful of megacaps
+    rather than of the strategy.
     """
-    passing: list[str] = []
+    scored: list[tuple[float, str]] = []
     for symbol, series in universe.items():
         i = series.index_asof(day)
         if i is None or i < lookback:
             continue
         bar = series[i]
-        if bar.close < min_price:
-            continue
         window = series.bars[i - lookback + 1 : i + 1]
         avg_dollar_volume = sum(b.dollar_volume for b in window) / len(window)
-        if avg_dollar_volume < min_dollar_volume:
-            continue
-        passing.append(symbol)
-    return sorted(passing)
+
+        if top_n is None:
+            if bar.close < min_price or avg_dollar_volume < min_dollar_volume:
+                continue
+            scored.append((avg_dollar_volume, symbol))
+        else:
+            # No price floor in relative mode: on adjusted prices it excludes
+            # by split history rather than by tradeability. Illiquid names are
+            # already excluded by not ranking near the top.
+            if avg_dollar_volume <= 0:
+                continue
+            scored.append((avg_dollar_volume, symbol))
+
+    if top_n is not None:
+        scored.sort(reverse=True)
+        scored = scored[:top_n]
+
+    return sorted(symbol for _, symbol in scored)
