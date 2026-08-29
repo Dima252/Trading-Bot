@@ -106,6 +106,11 @@ class BacktestConfig:
     # Symbol carrying the annualised cash rate (percent), e.g. "^IRX".
     cash_rate_symbol: str | None = None
 
+    # Apply the same liquidity screen the live scanner applies. Off means the
+    # backtest can trade names the live system would refuse -- which it silently
+    # did until 2026-08-29, producing results for a system that will never run.
+    screen_liquidity: bool = True
+
 
 @dataclass
 class _SimPosition:
@@ -198,6 +203,17 @@ class Backtest:
         )
 
         self.candidates_by_day = candidates_by_day
+
+        # Precomputed once: the screen depends only on bars, and doing it inside
+        # the daily loop would repeat the same work on every bar.
+        self._liquid: dict[date, set[str]] | None = None
+        if candidates_by_day is None and config.screen_liquidity:
+            span = [
+                d
+                for d in universe[config.benchmark].days
+                if config.start <= d <= config.end
+            ]
+            self._liquid = liquid_sets(self.tradeable, span)
         self.cash = config.starting_equity
         self._regime = Regime.TREND
         self.aborted_fills = 0
@@ -301,8 +317,12 @@ class Backtest:
         if self.candidates_by_day is not None:
             candidates = self.candidates_by_day.get(day, [])
         else:
+            pool = self.tradeable
+            if self._liquid is not None:
+                allowed = self._liquid.get(day, set())
+                pool = {s: b for s, b in pool.items() if s in allowed}
             candidates = scan(
-                self.tradeable, day, self.sectors, self.indicators, self.policy
+                pool, day, self.sectors, self.indicators, self.policy
             )
 
         actions = decide(portfolio, candidates, context, self.policy)

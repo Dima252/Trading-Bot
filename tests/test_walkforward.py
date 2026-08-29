@@ -248,6 +248,10 @@ def test_precomputing_does_not_change_backtest_results() -> None:
     indicators = {s: Indicators.compute(b) for s, b in universe.items()}
     span = [d for d in days if cfg.start <= d <= cfg.end]
 
+    from trading_bot.backtest.engine import liquid_sets
+
+    # BOTH sides must screen, or this compares two different systems and passes
+    # only because the synthetic universe happens to clear the screen entirely.
     plain = run_backtest(universe, sectors, cfg)
     hoisted = run_backtest(
         universe,
@@ -255,8 +259,47 @@ def test_precomputing_does_not_change_backtest_results() -> None:
         cfg,
         indicators=indicators,
         candidates_by_day=precompute_candidates(
-            tradeable, indicators, sectors, Policy(), span
+            tradeable, indicators, sectors, Policy(), span,
+            liquid_by_day=liquid_sets(tradeable, span),
         ),
     )
     assert plain.trades == hoisted.trades
     assert plain.curve == hoisted.curve
+
+
+def test_the_backtest_screens_for_liquidity_like_the_live_scanner() -> None:
+    """The third live-vs-backtest divergence found in this project.
+
+    `liquidity_screen` was called in jobs/evening.py and nowhere else, so the
+    backtest happily traded names the live system would refuse -- at idealised
+    fills, in the 1990s, where 17 of 292 names cleared the screen. Every result
+    it produced described a system that would never run.
+    """
+    from dataclasses import replace as dc_replace
+
+    from trading_bot.backtest.engine import BacktestConfig, run_backtest
+    from trading_bot.data.models import Bar, BarSeries
+
+    universe, sectors = random_universe(n_symbols=6, n_bars=600, seed=21)
+
+    # A name that trades a few hundred dollars a day: real bars, no liquidity.
+    thin = BarSeries("THIN", [
+        Bar(b.day, b.open, b.high, b.low, b.close, 5.0)
+        for b in universe["S00"].bars
+    ])
+    universe = {**universe, "THIN": thin}
+    sectors = {**sectors, "THIN": "Technology"}
+
+    days = universe["SPY"].days
+    cfg = BacktestConfig(start=days[300], end=days[-1])
+
+    screened = run_backtest(universe, sectors, cfg)
+    unscreened = run_backtest(universe, sectors, dc_replace(cfg, screen_liquidity=False))
+
+    assert not any(t.ticker == "THIN" for t in screened.trades), (
+        "the backtest traded a name the live scanner would never see"
+    )
+    assert any(t.ticker == "THIN" for t in unscreened.trades), (
+        "fixture must actually produce THIN trades when unscreened, "
+        "or this test proves nothing"
+    )
