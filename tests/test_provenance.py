@@ -119,3 +119,55 @@ def test_adding_the_shipped_config_leaves_the_baseline_pinned() -> None:
     with_shipped = _variants(_load_policy("config/policy.yaml"))
     assert with_shipped["baseline"].version == Policy().version
     assert with_shipped["baseline"].max_risk_per_trade == Policy().max_risk_per_trade
+
+
+# --- sleeve B variants isolate their hypotheses ----------------------------- #
+
+
+def _sleeves():
+    from trading_bot.cli import _load_policy, _variants
+
+    return _variants(_load_policy("config/policy.yaml"))
+
+
+def test_each_hypothesis_is_testable_on_its_own() -> None:
+    """Bundling changes and reading one number is what made the `defensive`
+    variant uninformative -- five changes at once, and no way to tell which one
+    moved it. H1 and H2 are offered separately as well as combined."""
+    v = _sleeves()
+    assert {"sleeve_b_horizon", "sleeve_b_regime", "sleeve_b"} <= set(v)
+
+    h1, h2 = v["sleeve_b_horizon"], v["sleeve_b_regime"]
+    assert h1.setup_max_hold_days and not h1.setup_regimes, "H1 must vary alone"
+    assert h2.setup_regimes and not h2.setup_max_hold_days, "H2 must vary alone"
+
+
+def test_the_combined_sleeve_is_exactly_both_hypotheses() -> None:
+    v = _sleeves()
+    combined, h1, h2 = v["sleeve_b"], v["sleeve_b_horizon"], v["sleeve_b_regime"]
+
+    assert combined.setup_max_hold_days == h1.setup_max_hold_days
+    assert combined.setup_time_stop_days == h1.setup_time_stop_days
+    assert combined.setup_regimes == h2.setup_regimes
+
+
+def test_the_sleeve_changes_nothing_for_the_trend_setups() -> None:
+    """Sleeve B must add a return stream, not perturb sleeve A. If it altered
+    the breakout or pullback horizons the comparison would measure two things."""
+    v = _sleeves()
+    shipped, combined = v["shipped"], v["sleeve_b"]
+
+    for setup in ("breakout", "pullback"):
+        assert combined.max_hold_for(setup) == shipped.max_hold_for(setup)
+        assert combined.time_stop_for(setup) == shipped.time_stop_for(setup)
+        assert combined.may_open_in("chop", setup) == shipped.may_open_in("chop", setup)
+
+
+def test_the_sleeve_builds_on_the_deployed_config_not_the_baseline() -> None:
+    """The question is what the DEPLOYED system gains, so the sleeve inherits
+    the shipped risk envelope rather than the library defaults."""
+    from trading_bot.core.policy import Policy
+
+    v = _sleeves()
+    assert v["sleeve_b"].max_risk_per_trade == v["shipped"].max_risk_per_trade
+    assert v["sleeve_b"].max_risk_per_trade != Policy().max_risk_per_trade

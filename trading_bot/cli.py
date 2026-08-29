@@ -288,6 +288,28 @@ def _variants(shipped: Policy | None = None) -> dict[str, Policy]:
     # so every recorded research result remains reproducible.
     if shipped is not None and shipped.version != base.version:
         variants["shipped"] = shipped
+
+        # Sleeve B (PLAN 5g), built on the shipped config rather than on the
+        # library baseline: the question is what the DEPLOYED system gains.
+        #
+        # H1 and H2 are also offered separately. Bundling changes and reading
+        # one number is exactly what made the `defensive` variant uninformative
+        # -- five changes at once, and no way to tell which one moved it.
+        variants["sleeve_b_horizon"] = shipped.with_changes(
+            version=f"{shipped.version}-h1",
+            setup_time_stop_days={"mean_reversion": 5},
+            setup_max_hold_days={"mean_reversion": 10},
+        )
+        variants["sleeve_b_regime"] = shipped.with_changes(
+            version=f"{shipped.version}-h2",
+            setup_regimes={"mean_reversion": ["trend", "chop"]},
+        )
+        variants["sleeve_b"] = shipped.with_changes(
+            version=f"{shipped.version}-sleeveB",
+            setup_time_stop_days={"mean_reversion": 5},
+            setup_max_hold_days={"mean_reversion": 10},
+            setup_regimes={"mean_reversion": ["trend", "chop"]},
+        )
     return variants
 
 
