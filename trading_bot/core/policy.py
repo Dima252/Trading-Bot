@@ -63,6 +63,14 @@ class Policy:
     # unchanged.
     setup_regimes: dict[str, list[str]] = field(default_factory=dict)
 
+    # Which setups may generate candidates at all. Empty means all of them, so
+    # an unset policy is unchanged.
+    #
+    # Measured over 1993-2013: pullback +0.201R across 657 trades (t = 3.52),
+    # breakout -0.046R across 158, and mean_reversion fired ONCE in twenty
+    # years. Two of the three detectors do not earn their place.
+    enabled_setups: list[str] = field(default_factory=list)
+
     # --- rotation ---
     switching_premium: float = 1.3
     min_candidate_score: float = 40.0
@@ -145,6 +153,9 @@ class Policy:
         if regime in self.tradeable_regimes:
             return True
         return any(regime in allowed for allowed in self.setup_regimes.values())
+
+    def setup_enabled(self, setup_type: str) -> bool:
+        return not self.enabled_setups or setup_type in self.enabled_setups
 
     def fit_for(self, setup_type: str, regime: str) -> float:
         return self.regime_fit.get(setup_type, {}).get(regime, 0.5)

@@ -77,12 +77,27 @@ PYEOF
 ok "paper account reachable"
 
 say "Market data"
+# Live only needs ~500 sessions of history: MIN_HISTORY is 220 bars and the
+# evening scan looks back 500 days. The 33 years in the research cache exists
+# for backtesting and is not worth transferring -- the default fetch is plenty.
 BARS=$("${PY}" -c "from trading_bot.data.cache import BarCache; print(BarCache('data/bars.db').stats()['bars'])" 2>/dev/null || echo 0)
 if [ "${BARS}" -lt 100000 ]; then
   warn "cache is thin (${BARS} bars) -- fetching, this takes ~10 minutes"
   "${PY}" -m trading_bot fetch
 else
   ok "${BARS} bars cached"
+fi
+
+say "Earnings calendar"
+# The only rule that CLOSES a position rather than declining to open one. With
+# no calendar it cannot fire, and the design reads as though the risk is
+# covered. Refreshed weekly by cron; this is the first fill.
+DATES=$("${PY}" -c "import json,os; print(len(json.load(open('config/earnings.json'))) if os.path.exists('config/earnings.json') else 0)" 2>/dev/null || echo 0)
+if [ "${DATES}" -lt 50 ]; then
+  warn "calendar has ${DATES} dates -- fetching"
+  "${PY}" -m trading_bot earnings || warn "earnings fetch failed; the event rule will not fire until it succeeds"
+else
+  ok "${DATES} earnings dates"
 fi
 
 say "Alerting"

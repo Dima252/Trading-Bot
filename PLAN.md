@@ -883,6 +883,108 @@ pattern the research describes, executed deliberately.
 
 ---
 
+## 5k. SPENDING THE VALIDATION WINDOW -- pre-registered 2026-08-29
+
+**This window is used once and is then gone.** Development measured the three
+setups over 1993-2013:
+
+| Setup | n | exp R | t | total R |
+|---|---|---|---|---|
+| pullback | 657 | +0.201 | 3.52 | +131.9 |
+| breakout | 158 | -0.046 | -0.40 | -7.2 |
+| mean_reversion | 1 | -- | -- | +0.4 |
+
+### The hypothesis
+
+Dropping breakout and mean_reversion improves the system, or at minimum does not
+harm it. Two of three detectors do not earn their place.
+
+**This was chosen by looking at development results**, which is how overfitting
+starts -- so it is not adopted on that basis. It is confirmed on data the choice
+never saw, which is exactly what a validation window is for.
+
+### The run
+
+`walkforward --start 2014-01-01 --end 2019-07-15 --folds 2 --no-holdout --only
+shipped pullback_only`. Two folds, because 5.5 years does not support four.
+
+### Criteria, all three required to adopt `pullback_only`
+
+1. `pullback_only` expectancy **>= `shipped`** expectancy on validation
+2. `pullback_only` max drawdown **<= `shipped`** max drawdown
+3. `pullback_only` expectancy stays **within 0.08R** of its development figure
+   (+0.201R) -- an edge that halves out of sample was fitted, whichever variant
+   nominally wins
+
+### What each outcome means
+
+| Result | Action |
+|---|---|
+| 3 of 3 | Ship `pullback_only`. Simpler system, same or better numbers |
+| 1-2 of 3 | Ship `shipped` unchanged. The three-setup config is what was validated end to end |
+| Both degrade badly | Neither ships. The edge did not survive 2014-2019 and the trial should not start |
+
+### After this
+
+The validation window is spent. **No further historical testing of this
+strategy.** Whatever ships, ships, and the next evidence is live.
+
+---
+
+## 5k-R. VALIDATION SPENT -- 0 of 3, and the pre-registration earned its keep
+
+Run exactly as written in 5k. Full output in `records/validation_2014_2019.txt`.
+**The validation window is now spent.**
+
+| | trades | exp R | Sharpe | maxDD | +folds |
+|---|---|---|---|---|---|
+| **shipped** (3 setups) | 175 | **+0.179** | 0.32 | **7.71%** | 2/2 |
+| `pullback_only` | 206 | +0.088 | -0.01 | 11.18% | 2/2 |
+
+| Criterion | Result | |
+|---|---|---|
+| expectancy >= shipped | +0.088 vs +0.179 | **FAIL** |
+| drawdown <= shipped | 11.18% vs 7.71% | **FAIL** |
+| within 0.08R of development | drifted 0.113R | **FAIL** |
+
+**0 of 3. `pullback_only` is not adopted. The current frozen config ships
+unchanged.**
+
+### The two variants travelled in opposite directions
+
+| Variant | Development | Validation | Drift | |
+|---|---|---|---|---|
+| shipped | +0.157 | **+0.179** | +0.022 | held |
+| pullback_only | +0.201 | +0.088 | **-0.113** | halved |
+
+`pullback_only` looked *better* on development -- +0.201R against +0.157R -- and
+lost half of it on data the choice had never seen. That is the signature of a
+fitted result, and criterion 3 existed precisely to catch it.
+
+**Without the pre-registration I would have shipped the worse system**, and with
+a good story about why: breakout measured -0.046R over 158 trades, mean_reversion
+fired once in twenty years, dropping dead weight is obviously right. The
+reasoning was sound and the conclusion was wrong, which is the whole reason the
+criteria are written before the run rather than after.
+
+### The more important result
+
+**`shipped` did not degrade out of sample.** +0.157R on development, +0.179R on
+validation, positive in both folds. Twice now it has been tested on data the
+selection process never saw, and twice it has held.
+
+Neither variant cleared the section 5 risk-adjusted bar against SPY in either
+fold -- 2014-2019 was a strong bull market, which is the regime this system
+concedes by design.
+
+### Research is now closed
+
+Development is used, validation is spent, the holdout was spent in a previous
+session. **There is no uncontaminated historical data left for this strategy.**
+Whatever ships now, ships. The next evidence is live.
+
+---
+
 ## 5e. Repo audit (session 4)
 
 Removed as unused, verified by reference scan:

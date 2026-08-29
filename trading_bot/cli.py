@@ -342,6 +342,14 @@ def _variants(shipped: Policy | None = None) -> dict[str, Policy]:
             version=f"{shipped.version}-h2",
             setup_regimes={"mean_reversion": ["trend", "chop"]},
         )
+        # Development measured pullback at +0.201R over 657 trades (t = 3.52),
+        # breakout at -0.046R over 158, and mean_reversion firing once in 20
+        # years. This drops the two that do not earn their place. Chosen on
+        # development data, so it is confirmed on VALIDATION, once.
+        variants["pullback_only"] = shipped.with_changes(
+            version=f"{shipped.version}-pullback",
+            enabled_setups=["pullback"],
+        )
         variants["sleeve_b"] = shipped.with_changes(
             version=f"{shipped.version}-sleeveB",
             setup_time_stop_days={"mean_reversion": 5},

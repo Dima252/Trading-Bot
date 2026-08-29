@@ -74,6 +74,20 @@ def test_all_four_jobs_are_scheduled() -> None:
     assert {"premarket", "open", "close", "evening"} <= names
 
 
+def test_the_earnings_calendar_is_refreshed_on_a_schedule() -> None:
+    """Dates move. A stale calendar silently stops blocking, which looks
+    exactly like a calendar with nothing to block -- the failure this rule
+    spent the whole project in."""
+    _, jobs = parse()
+    assert "earnings" in {name for _, _, name in jobs}
+
+
+def test_setup_provisions_the_earnings_calendar() -> None:
+    """A host that comes up without one has the hardest rule silently inert."""
+    source = (DEPLOY / "setup.sh").read_text(encoding="utf-8")
+    assert "trading_bot earnings" in source
+
+
 def test_the_jobs_run_in_session_order() -> None:
     """premarket -> open -> close, mirroring the trading day."""
     _, jobs = parse()

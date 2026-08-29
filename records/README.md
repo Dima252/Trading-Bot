@@ -6,6 +6,7 @@ the reasoning can be re-read later.
 
 | File | What it records |
 |---|---|
+| `validation_2014_2019.txt` | **The validation window, spent 2026-08-29.** `pullback_only` looked better on development (+0.201R) and halved out of sample (+0.088R); `shipped` held (+0.157 -> +0.179). 0 of 3 criteria met, so the current config ships unchanged. |
 | `gonogo_screened.txt` | **The corrected go/no-go.** Re-run once the backtest was made to apply the live liquidity screen. 4/4 folds positive, mean +0.157R. Supersedes the run below. |
 | `gonogo_screened_sigma.txt` | Sigma on the screened trades (1.4631, t = 2.99) plus the per-setup breakdown that showed pullback carries the whole system. |
 | `gonogo_1993_2013.txt` | **The go/no-go, 2026-08-29.** The shipped config over 20 years it had never seen, folded across the dot-com crash and the GFC. Criteria were pre-registered in PLAN §5f before the data was fetched. 3/3, +0.118R against baseline's +0.007R over 847 trades. |

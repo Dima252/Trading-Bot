@@ -69,8 +69,11 @@ def find_setups(
     found = []
     for module in (breakout, pullback, mean_reversion):
         cand = module.detect(series, ind, i, sector, policy)
-        if cand is not None and cand.is_valid:
-            found.append(cand)
+        if cand is None or not cand.is_valid:
+            continue
+        if not policy.setup_enabled(cand.setup_type.value):
+            continue
+        found.append(cand)
     return found
 
 
