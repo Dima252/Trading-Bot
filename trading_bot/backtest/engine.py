@@ -163,6 +163,7 @@ class Backtest:
             for s, b in universe.items()
             if s != config.benchmark and is_tradeable(s)
         }
+        self._rate_samples: list[float] = []
         self.cash_rates = (
             universe.get(config.cash_rate_symbol)
             if config.cash_rate_symbol
@@ -211,6 +212,10 @@ class Backtest:
 
         self._close_out(days[-1] if days else self.config.end)
         self.result.final_cash = self.cash
+        if self._rate_samples:
+            self.result.avg_cash_rate = round(
+                sum(self._rate_samples) / len(self._rate_samples), 5
+            )
         self._attach_post_exit_paths()
         return self.result
 
@@ -229,6 +234,7 @@ class Backtest:
         if i is None:
             return
         annual = self.cash_rates[i].close / 100.0
+        self._rate_samples.append(annual)
         if annual <= 0:
             return
         interest = self.cash * annual / 252.0

@@ -108,6 +108,11 @@ class BacktestResult:
     # run agree bar for bar; this is where the closing costs land.
     final_cash: float | None = None
 
+    # Mean annualised cash rate over the window. Sharpe is meaningless without
+    # it: the same 12% return is a triumph against 0% cash and unremarkable
+    # against 5%, and this window spans both.
+    avg_cash_rate: float | None = None
+
     @property
     def final_equity(self) -> float:
         if self.final_cash is not None:

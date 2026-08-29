@@ -279,16 +279,16 @@ def format_walkforward(wf: WalkForward) -> str:
         lines.append(f"  {name}")
         lines.append(
             f"    {'fold':<7}{'trades':>7}{'exp R':>8}{'win%':>7}"
-            f"{'return':>9}{'vs SPY':>9}{'maxDD':>8}{'bmDD':>8}"
-            f"{'ret/DD':>8}{'bm':>6}   bar"
+            f"{'return':>9}{'vs SPY':>9}{'vol':>7}{'Sharpe':>8}"
+            f"{'maxDD':>8}{'ret/DD':>8}{'bm':>6}   bar"
         )
         for r in wf.for_variant(name):
             lines.append(
                 f"    {r.fold.label:<7}{r.stats.trades:>7}"
                 f"{r.stats.expectancy_r:>8.3f}{r.stats.win_rate:>7.1%}"
                 f"{r.curve.total_return:>9.2%}{r.excess:>+9.2%}"
+                f"{r.curve.volatility:>7.1%}{r.curve.sharpe:>8.2f}"
                 f"{r.curve.max_drawdown:>8.2%}"
-                f"{r.benchmark.max_drawdown:>8.2%}"
                 f"{r.return_per_dd:>8.2f}{r.benchmark_return_per_dd:>6.2f}"
                 f"   {'PASS' if r.beats_benchmark_risk_adjusted else 'fail'}"
             )

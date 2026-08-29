@@ -7,7 +7,7 @@ never had, and produces the same answer twice.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -351,3 +351,79 @@ def test_a_zero_rate_pays_nothing(market) -> None:
     )
     bt.run()
     assert bt.interest_earned == 0.0
+
+
+# --- volatility and Sharpe, which the leverage decision is read from ------- #
+
+
+def _curve(returns: list[float], start: float = 100_000.0):
+    """An equity curve with exactly these daily returns."""
+    from trading_bot.backtest.records import BacktestResult, EquityPoint
+    from trading_bot.core.models import Regime
+
+    equity, points = start, []
+    base = date(2020, 1, 1)
+    for i, r in enumerate([0.0, *returns]):
+        equity *= (1 + r)
+        points.append(
+            EquityPoint(base + timedelta(days=i), equity, equity, 0, 0.0, Regime.TREND)
+        )
+    return BacktestResult(curve=points, starting_equity=start)
+
+
+def test_a_flat_curve_has_no_volatility_and_no_sharpe() -> None:
+    from trading_bot.backtest.metrics import curve_stats
+
+    stats = curve_stats(_curve([0.0] * 60))
+    assert stats.volatility == 0.0
+    assert stats.sharpe == 0.0, "dividing by zero volatility must not explode"
+
+
+def test_volatility_is_annualised_from_daily_returns() -> None:
+    """252 sessions of alternating +/-1% is a 1% daily stdev, which annualises
+    to 1% * sqrt(252) ~= 15.9%."""
+    from trading_bot.backtest.metrics import curve_stats
+
+    stats = curve_stats(_curve([0.01, -0.01] * 126))
+    assert stats.volatility == pytest.approx(0.159, abs=0.01)
+
+
+def test_sharpe_is_measured_against_the_cash_rate_that_prevailed() -> None:
+    """The same return is a triumph against 0% cash and unremarkable against
+    5%. A hardcoded risk-free would be wrong by whole points across a window
+    spanning both."""
+    from trading_bot.backtest.metrics import curve_stats
+
+    result = _curve([0.01, -0.005] * 126)
+    free = curve_stats(result)
+
+    result.avg_cash_rate = 0.05
+    costly = curve_stats(result)
+
+    assert costly.sharpe < free.sharpe
+    assert free.volatility == costly.volatility, "vol does not depend on the rate"
+
+
+def test_sharpe_uses_cagr_not_total_return() -> None:
+    """Otherwise a long run scores higher than a short one at identical
+    performance, purely for lasting longer."""
+    from trading_bot.backtest.metrics import curve_stats
+
+    pattern = [0.004, -0.002]
+    one_year = curve_stats(_curve(pattern * 126))
+    two_years = curve_stats(_curve(pattern * 252))
+
+    assert one_year.sharpe == pytest.approx(two_years.sharpe, rel=0.10)
+
+
+def test_a_nearly_constant_curve_reports_no_sharpe_rather_than_a_huge_one() -> None:
+    """Identical daily returns give a volatility of ~1e-16, and dividing by it
+    produced a Sharpe of 7.4e14. The same shape of bug once reported an
+    expectancy of 23,720,292R -- a near-zero denominator is not a small number,
+    it is an undefined one."""
+    from trading_bot.backtest.metrics import curve_stats
+
+    stats = curve_stats(_curve([0.001] * 252))
+
+    assert stats.sharpe == 0.0
+    assert stats.volatility < 0.001

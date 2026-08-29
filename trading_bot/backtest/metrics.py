@@ -10,9 +10,13 @@ Two things matter more than the headline return:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from statistics import mean
+from statistics import mean, stdev
 
 from .records import BacktestResult, ShadowRecord, TradeRecord
+
+# Annualised volatility below which a Sharpe ratio is meaningless rather than
+# merely large. 0.1% a year is far below anything a traded book produces.
+MIN_VOLATILITY = 0.001
 
 
 @dataclass(frozen=True)
@@ -113,6 +117,13 @@ class CurveStats:
     final_equity: float = 0.0
     exposure: float = 0.0
 
+    # Annualised standard deviation of daily equity returns, and the Sharpe
+    # ratio measured against the cash rate that actually prevailed. These are
+    # what a leverage decision is made from -- return alone says nothing about
+    # how much of it you could have afforded to take.
+    volatility: float = 0.0
+    sharpe: float = 0.0
+
 
 def curve_stats(result: BacktestResult) -> CurveStats:
     if not result.curve:
@@ -131,7 +142,25 @@ def curve_stats(result: BacktestResult) -> CurveStats:
     years = days / 365.25
     cagr = ((final / start_eq) ** (1 / years) - 1) if years > 0 and start_eq > 0 else 0.0
 
+    # Daily equity returns -> annualised volatility -> Sharpe against the cash
+    # rate the run actually saw. A hardcoded risk-free would be wrong by whole
+    # points across a window that spans 6% rates and 0% rates.
+    rets = [
+        (b.equity - a.equity) / a.equity
+        for a, b in zip(result.curve, result.curve[1:], strict=False)
+        if a.equity > 0
+    ]
+    vol = (stdev(rets) * (252 ** 0.5)) if len(rets) > 1 else 0.0
+    rf = result.avg_cash_rate or 0.0
+    # A floor, not `vol > 0`. A curve with near-identical daily returns has a
+    # volatility of ~1e-16 and would report a Sharpe in the trillions -- the
+    # same divide-by-almost-zero that once produced 23,720,292R of expectancy.
+    # Below this the ratio is not small, it is undefined.
+    sharpe = (cagr - rf) / vol if vol > MIN_VOLATILITY else 0.0
+
     return CurveStats(
+        volatility=round(vol, 4),
+        sharpe=round(sharpe, 2),
         total_return=round(final / start_eq - 1, 4),
         cagr=round(cagr, 4),
         max_drawdown=round(max_dd, 4),
