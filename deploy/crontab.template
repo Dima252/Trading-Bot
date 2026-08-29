@@ -33,5 +33,10 @@ BOT=/opt/trading-bot
 # 18:30  regenerate the static dashboard
 30 18 * * 1-5 cd $BOT && ./venv/bin/python -m trading_bot dashboard --out out/dashboard.html >> logs/bot.log 2>&1
 
+# 17:30 Sunday  refresh the earnings calendar. Dates move, and a stale calendar
+#        silently stops blocking -- which looks identical to having nothing to
+#        block. Runs before the week starts so Monday's premarket job has it.
+30 17 * * 0   cd $BOT && ./venv/bin/python -m trading_bot earnings >> logs/bot.log 2>&1
+
 # Weekly log rotation, so six months of output does not fill the disk.
 0 20 * * 0    cd $BOT && mv logs/bot.log logs/bot.$(date +\%Y\%m\%d).log && find logs -name 'bot.*.log' -mtime +60 -delete

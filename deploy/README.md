@@ -118,9 +118,11 @@ there is no path from this page to an order.
 Paper trading is safe to start now. These are the items to close before any real
 capital, from PLAN.md §6:
 
-- **Earnings calendar.** Deliberately unwired for the trial — the backtest ran
-  without it too, so wiring it now would make the trial test a system that was
-  never validated.
+- **Earnings calendar.** Now wired: `python -m trading_bot earnings` writes
+  `config/earnings.json`. Re-run it weekly, since dates move. Note that the
+  backtest ran *without* it, so the live system is now marginally more
+  conservative than the one that was validated — it declines a few entries the
+  backtest would have taken.
 - **Data-feed latency.** The 15:30 confirmation reads live prices; on a delayed
   feed it reads 15-minute-old data.
 - **Rotate the paper keys**, and generate separate live keys.

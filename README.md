@@ -752,7 +752,7 @@ quietly not working.
 
 | Gap | Impact | What it needs |
 |---|---|---|
-| **Earnings calendar** | The single hardest-blocking rule has no data source. `StaticEarningsCalendar` reads `config/earnings.json`; with no file it logs a warning and the rule **never fires**. | A real provider. Alpaca does not publish one. |
+| ~~Earnings calendar~~ | **Wired 2026-08-29.** `python -m trading_bot earnings` refreshes `config/earnings.json`; 269 confirmed dates, provider estimates excluded by default. The rule fires for the first time. | Re-run it weekly — dates move. |
 | **Data feed latency** | The 15:30 close-confirmation check reads `latest_prices()`. On a delayed feed it is reading ~15-minute-old prices and the confirmation is meaningless. | Confirm what your account actually returns, then either pay for real-time or move the check. |
 | **`ADD` to a position** | `decide()` never emits it. Layering shares onto a live OCO bracket is a three-step transaction (cancel exits → add → re-place for combined size). The constraint layer already validates it. | Executor work, and a rollback path. |
 | **Live paper track record** | Zero. Every number in this repo comes from historical replay on a survivorship-biased universe. | Two weeks of `daily`, then six months armed. |

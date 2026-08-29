@@ -129,6 +129,44 @@ def cmd_fetch(args) -> int:
     return 0
 
 
+def cmd_earnings(args) -> int:
+    """Refresh the earnings calendar the constitution's hardest rule reads.
+
+    `StaticEarningsCalendar` has always read config/earnings.json and nothing
+    has ever written it, so the earnings block has never been able to fire. A
+    rule that cannot fire is worse than a missing one: the design reads as
+    though the risk is covered.
+    """
+    from .data.earnings import YahooEarnings, write_calendar
+    from .data.universe import all_symbols
+
+    symbols = [s for s in all_symbols(include_benchmark=False)]
+    print(f"fetching earnings dates for {len(symbols)} symbols")
+    print()
+
+    found = YahooEarnings().fetch(symbols)
+    estimated = sum(1 for d in found.values() if d.estimated)
+
+    print()
+    print(f"got {len(found)} dates, {estimated} of them provider estimates")
+    try:
+        written = write_calendar(
+            found, args.out, include_estimates=args.include_estimates
+        )
+    except RuntimeError as exc:
+        print()
+        print(exc, file=sys.stderr)
+        return 1
+
+    print(f"wrote {written} to {args.out}")
+    if not args.include_estimates and estimated:
+        print(
+            f"  {estimated} estimated dates excluded -- closing a position on a "
+            "guessed date is worse than not blocking. --include-estimates to keep."
+        )
+    return 0
+
+
 def cmd_backtest(args) -> int:
     from .backtest.engine import BacktestConfig, run_backtest
     from .backtest.metrics import build_report, format_report
@@ -664,6 +702,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     fetch.add_argument("--full", action="store_true", help="ignore what is cached")
     fetch.set_defaults(func=cmd_fetch)
+
+    earn = add("earnings", "refresh the earnings calendar the event rule reads")
+    earn.add_argument("--out", default="config/earnings.json")
+    earn.add_argument(
+        "--include-estimates", action="store_true",
+        help="keep dates the provider flagged as estimated (default: drop them)",
+    )
+    earn.set_defaults(func=cmd_earnings)
 
     bt = add("backtest", "replay decide() over history")
     bt.add_argument("--start", type=date.fromisoformat, default=None)
