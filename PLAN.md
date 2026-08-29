@@ -565,6 +565,55 @@ before real money, not before paper.
 
 ---
 
+## 5f. THE GO/NO-GO -- pre-registered 2026-08-29, before the data existed
+
+Written while the deep-history fetch was still running, so that no version of
+this can be adjusted after seeing a number. That is the whole point: the last
+cycle's failure was not a bad model, it was a criterion chosen after the fact.
+
+### What is being tested
+
+**Hypothesis.** The shipped config `v2-holdout` has a positive per-trade
+expectancy that persists in data the selection process never saw.
+
+**The run.** `walkforward --start 1993-01-01 --end 2013-12-31 --folds 4
+--no-holdout`, comparing `shipped` against `baseline`. Twenty years, four
+independent folds, spanning the dot-com crash and the GFC -- none of it visible
+when any variant was chosen.
+
+### Pass criteria, all three required
+
+1. Mean expectancy across the four folds is **positive**
+2. Expectancy is positive in **at least 3 of 4** folds
+3. `shipped` beats `baseline` on mean expectancy
+
+### What each outcome licenses
+
+| Result | Reading | Next |
+|---|---|---|
+| **3 of 3** | The edge survives 20 unseen years and two crashes | Build sleeves B and C; the architecture is worth the effort |
+| **1-2 of 3** | Ambiguous. The edge is not established | **No leverage.** Diagnose before building anything on top |
+| **0 of 3** | The edge was an artifact of 2019-2025 | Stop. No architecture rescues a strategy without an edge |
+
+### What does NOT count as a pass
+
+- Changing anything after seeing the result, then re-running
+- Trying other fold counts until one passes
+- Reading absolute returns as evidence -- see the caveat below
+
+### The caveat that limits this test
+
+**Survivorship bias is severe going back.** The ticker list is today's index;
+every company that failed between 1993 and now is absent. Absolute returns from
+this window are inflated and must not be quoted as expected performance.
+
+This is why all three criteria are about **expectancy and consistency relative
+to baseline**, not about return. Both variants face the identical biased
+universe, so the comparison between them survives even though neither absolute
+number does.
+
+---
+
 ## 5e. Repo audit (session 4)
 
 Removed as unused, verified by reference scan:

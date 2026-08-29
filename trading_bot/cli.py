@@ -324,9 +324,12 @@ def cmd_walkforward(args) -> int:
         print()
         print(f"  !! {note}")
         if not args.allow_contaminated:
+            # One stream, so the reason and the remedy stay in order.
             print("  refusing -- pass --allow-contaminated to run it anyway.")
-            print(f"  the unseen development window is "
-                  f"{DEVELOPMENT[0]} -> {DEVELOPMENT[1]}.", file=sys.stderr)
+            print(
+                f"  the unseen development window is "
+                f"{DEVELOPMENT[0]} -> {DEVELOPMENT[1]}."
+            )
             return 1
         print("  --allow-contaminated given; continuing under protest.")
     print()
