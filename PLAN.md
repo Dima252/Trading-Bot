@@ -675,6 +675,73 @@ follow-up work, not applied mid-test.
 
 ---
 
+## 5f-R. THE GO/NO-GO RESULT -- 3 of 3, 2026-08-29
+
+Run exactly as pre-registered: `walkforward --start 1993-01-01 --end 2013-12-31
+--folds 4 --no-holdout`, shipped against baseline, over 446 symbols and 20 years
+neither of us had looked at. Full output in `records/gonogo_1993_2013.txt`.
+
+| Fold | Period | Trades | Exp R | Sharpe | vs SPY |
+|---|---|---|---|---|---|
+| F1 | 1994-99 | 270 | **-0.068** | -0.32 | -185.1% |
+| F2 | 1999-04 *(dot-com)* | 146 | +0.109 | +0.27 | **+32.5%** |
+| F3 | 2004-09 *(GFC)* | 218 | +0.183 | +0.73 | **+88.4%** |
+| F4 | 2009-13 | 213 | +0.248 | +0.81 | -86.4% |
+
+| Criterion | Result | |
+|---|---|---|
+| mean expectancy positive | **+0.118R** | PASS |
+| positive in >=3 of 4 folds | **3/4** | PASS |
+| beats baseline | +0.118 vs **+0.007** | PASS |
+
+### The edge is measurable for the first time
+
+Sigma was measured rather than assumed, because the significance turns on it
+entirely and assuming the number that decides the question is the habit this
+project keeps getting caught by.
+
+```
+845 trades   mean +0.1188R   MEASURED sigma 1.3954
+SE 0.0480    t = 2.47        p ~ 0.013
+```
+
+Against the spent holdout's 61 trades at t = 0.58. This is the first result in
+the project's history that is distinguishable from zero.
+
+### The pattern is the same one, now on unseen data
+
+It beats the index in both crisis folds and loses in both bull folds -- the
+"reduced beta, not alpha" conclusion, confirmed across the dot-com crash and the
+GFC by a process that had never seen either. The full 20-year single run:
+
+| | Strategy | SPY |
+|---|---|---|
+| CAGR | 7.08% | 9.15% |
+| max drawdown | **28.34%** | **55.19%** |
+| return / drawdown | **10.16** | 8.46 |
+
+It loses on return and wins on risk-adjusted return. Twenty years does not
+change what this is.
+
+### Two honest readings of the Sharpe
+
+The fold Sharpes excluding F1 average **0.60**, which is exactly the per-sleeve
+assumption the three-sleeve architecture was designed around. Including F1 they
+are far lower.
+
+Excluding F1 is legitimate -- it was pre-registered as universe-constrained
+before the run, and 17 of 292 available names cleared the liquidity screen in
+1995. It is still an exclusion, and the conservative reading is the one to plan
+against until an era-relative screen makes F1 informative.
+
+### Caveat that does not go away
+
+Survivorship bias inflates every absolute number here. 288% total return over
+the period is not something anyone could have earned; the *comparison* between
+variants is what survives, which is why all three criteria were comparative.
+
+---
+
 ## 5g. SLEEVE B -- pre-registered 2026-08-29, before implementing anything
 
 The go/no-go passed 3/3, which licenses building the second sleeve. Reading the

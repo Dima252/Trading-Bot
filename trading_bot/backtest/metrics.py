@@ -315,6 +315,9 @@ def format_report(report: Report, universe_size: int = 0) -> str:
     lines.append(
         f"  days           {c.days:>13}   time invested{c.exposure:>8.1%}"
     )
+    lines.append(
+        f"  volatility     {c.volatility:>13.2%}   Sharpe       {c.sharpe:>8.2f}"
+    )
 
     b = report.benchmark
     if b.available:
