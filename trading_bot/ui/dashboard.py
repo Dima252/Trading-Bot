@@ -61,7 +61,7 @@ def _sparkline(
     equity: list[tuple[date, float]],
     benchmark: list[tuple[date, float]] | None = None,
     width: int = 900,
-    height: int = 220,
+    height: int = 260,
 ) -> str:
     """Inline SVG. Both series normalised to 100 at the start, so the comparison
     is like for like regardless of account size."""
@@ -103,18 +103,64 @@ def _sparkline(
         )
     )
 
-    return f"""<svg viewBox="0 0 {width} {height}" class="chart"
+    # Area under the agent's line, closed along the baseline. Reads as a level
+    # rather than a squiggle, which is what a balance is.
+    eq_pts = points(eq)
+    first_x = pad
+    last_x = width - pad
+    floor = height - pad
+    area = f"{first_x},{floor} {eq_pts} {last_x},{floor}"
+
+    # Horizontal guides at quarters of the range -- enough to read a level from,
+    # faint enough not to compete with the series.
+    grid = "".join(
+        f'<line class="grid" x1="{pad}" y1="{y:.1f}" x2="{width - pad}" y2="{y:.1f}" />'
+        for y in (
+            height - pad - f * (height - 2 * pad) for f in (0.25, 0.5, 0.75, 1.0)
+        )
+    )
+
+    ex, ey = eq_pts.rsplit(" ", 1)[-1].split(",") if " " in eq_pts else (last_x, floor)
+
+    return f"""<div class="chartwrap">
+<svg viewBox="0 0 {width} {height}" class="chart"
      preserveAspectRatio="none" role="img" aria-label="equity curve">
-  <line class="axis" x1="{pad}" y1="{height - pad}" x2="{width - pad}"
-        y2="{height - pad}" />
+  {grid}
+  <line class="axis" x1="{pad}" y1="{floor}" x2="{width - pad}" y2="{floor}" />
+  <polygon class="eqfill" points="{area}" />
   {bm_line}
-  <polyline class="eq" points="{points(eq)}" />
-  <text x="{pad}" y="16" class="legend">{legend}</text>
+  <polyline class="eq" points="{eq_pts}" />
+  <circle class="dot" cx="{ex}" cy="{ey}" r="4" />
+  <text x="{pad}" y="18" class="legend">{legend}</text>
 </svg>
-<p class="cap">{esc(eq[0][0])} &rarr; {esc(eq[-1][0])}, both rebased to 100.</p>"""
+</div>
+<p class="cap">{esc(eq[0][0])} &rarr; {esc(eq[-1][0])} · both rebased to 100</p>"""
 
 
 # --------------------------------------------------------------------- #
+
+
+def _headline(repo: Repo, today: date) -> str:
+    """Account value, with the change since the run began.
+
+    This is the number anyone opens the page for. It was previously one tile
+    among six, at the same size as `heat`.
+    """
+    history = repo.equity_history()
+    if not history:
+        return "—"
+
+    now = history[-1]["equity"]
+    start = history[0]["equity"] or 0.0
+    if start <= 0:
+        return _money(now)
+
+    change = (now - start) / start
+    cls = _cls(change)
+    return (
+        f"{_money(now)}"
+        f'<span class="delta {cls}">{change:+.2%}</span>'
+    )
 
 
 def _status_bar(repo: Repo, policy: Policy, today: date) -> str:
@@ -374,61 +420,118 @@ def _attribution(repo: Repo) -> str:
 # --------------------------------------------------------------------- #
 
 CSS = """
-:root{--bg:#fbfbfa;--fg:#1a1a19;--dim:#6b6b68;--line:#e3e3e0;--card:#fff;
---pos:#0f7b4f;--neg:#b3261e;--warn:#9a6700;--accent:#2b5eea;--bm:#9a9a96}
-@media (prefers-color-scheme:dark){:root{--bg:#141413;--fg:#eeeeec;--dim:#9a9a96;
---line:#2c2c2a;--card:#1c1c1a;--pos:#4ec38a;--neg:#f0837c;--warn:#e0b341;
---accent:#7aa2f7;--bm:#6b6b68}}
+/* Self-contained by design: no font link, no external asset. The stacks below
+   resolve to the best face already on the machine, because the page has to
+   survive being opened over file:// or scp with no network. */
+:root{
+  --bg:#f4f5f7; --panel:#fff; --fg:#14171c; --dim:#606a7a; --faint:#8b95a5;
+  --line:#e2e6ec; --hair:#eef1f5;
+  --pos:#0d7a4f; --neg:#b3261e; --warn:#8a6410; --accent:#2f5fd0; --bm:#a3abb8;
+  --pos-bg:#e7f3ec; --neg-bg:#fbeae8; --warn-bg:#fbf2e0;
+  --shadow:0 1px 2px rgba(20,23,28,.05),0 10px 28px -20px rgba(20,23,28,.35);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0e1116; --panel:#161a21; --fg:#e4e8ee; --dim:#97a1b0; --faint:#6b7583;
+  --line:#252b34; --hair:#1c222a;
+  --pos:#4ec38a; --neg:#ef8279; --warn:#d9ab4c; --accent:#7d9ef5; --bm:#5c6675;
+  --pos-bg:#14251d; --neg-bg:#271a19; --warn-bg:#26200f;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 28px -20px rgba(0,0,0,.9);
+}}
 *{box-sizing:border-box}
-body{margin:0;padding:28px;background:var(--bg);color:var(--fg);
-font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",system-ui,sans-serif}
-h1{font-size:20px;margin:0 0 2px}
-h2{font-size:15px;margin:32px 0 10px;padding-bottom:6px;
-border-bottom:1px solid var(--line)}
-h3{font-size:13px;margin:18px 0 6px;color:var(--dim);font-weight:600}
-.sub{color:var(--dim);margin:0 0 20px;font-size:12.5px}
-.tiles{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
-.tile{background:var(--card);border:1px solid var(--line);border-radius:8px;
-padding:10px 14px;min-width:120px}
-.tile .k{display:block;font-size:11px;color:var(--dim);text-transform:uppercase;
-letter-spacing:.05em}
-.tile .v{display:block;font-size:17px;font-weight:600;margin-top:2px;
-font-variant-numeric:tabular-nums}
-.jobs{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}
-.job{border:1px solid var(--line);border-radius:6px;padding:6px 10px;
-background:var(--card);font-size:12px}
-.job .k{color:var(--dim);margin-right:8px}
-.job.ok{border-left:3px solid var(--pos)}
-.job.warn{border-left:3px solid var(--warn)}
-.job.bad{border-left:3px solid var(--neg)}
+body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+  font:14px/1.55 ui-sans-serif,-apple-system,"Segoe UI Variable Text","Segoe UI",
+  system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:36px 28px 80px}
+
+/* masthead ------------------------------------------------------------- */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;
+  gap:20px;padding-bottom:20px;border-bottom:2px solid var(--fg);margin-bottom:26px}
+h1{font-size:15px;margin:0 0 10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);font-weight:600}
+.headline{font-size:clamp(34px,6vw,46px);font-weight:650;line-height:1;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:0}
+.headline .delta{font-size:16px;font-weight:600;margin-left:12px;letter-spacing:0}
+.sub{color:var(--faint);margin:8px 0 0;font-size:12.5px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.sub code{background:none;padding:0;color:var(--dim)}
+
+/* metric strip --------------------------------------------------------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+  gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;
+  overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow)}
+.tile{background:var(--panel);padding:13px 16px}
+.tile .k{display:block;font-size:10.5px;color:var(--faint);text-transform:uppercase;
+  letter-spacing:.09em;font-weight:600}
+.tile .v{display:block;font-size:19px;font-weight:620;margin-top:3px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .tile.ok .v{color:var(--pos)}.tile.bad .v{color:var(--neg)}
 .tile.warn .v{color:var(--warn)}
+
+/* job pills ------------------------------------------------------------ */
+.jobs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 6px}
+.job{border:1px solid var(--line);border-radius:999px;padding:5px 13px 5px 10px;
+  background:var(--panel);font-size:12px;display:inline-flex;align-items:center;gap:8px}
+.job::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--faint);
+  flex:none}
+.job .k{color:var(--dim);font-weight:600}
+.job .v{color:var(--faint);font-variant-numeric:tabular-nums}
+.job.ok::before{background:var(--pos)}
+.job.warn::before{background:var(--warn)}
+.job.bad::before{background:var(--neg)}
+
+/* sections ------------------------------------------------------------- */
+h2{font-size:12px;margin:38px 0 12px;padding-bottom:8px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--dim);font-weight:700;
+  border-bottom:1px solid var(--line)}
+h3{font-size:12px;margin:20px 0 7px;color:var(--faint);font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase}
+
+/* panels + tables ------------------------------------------------------ */
+.scroll{overflow-x:auto;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;box-shadow:var(--shadow)}
 table{width:100%;border-collapse:collapse;font-size:12.5px;
-font-variant-numeric:tabular-nums}
-.scroll{overflow-x:auto}
-th{text-align:left;font-weight:600;color:var(--dim);font-size:11px;
-text-transform:uppercase;letter-spacing:.04em;padding:6px 10px 6px 0;
-border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:6px 10px 6px 0;border-bottom:1px solid var(--line);
-vertical-align:top}
+  font-variant-numeric:tabular-nums}
+th{text-align:left;font-weight:600;color:var(--faint);font-size:10.5px;
+  text-transform:uppercase;letter-spacing:.07em;padding:11px 14px;
+  border-bottom:1px solid var(--line);white-space:nowrap;background:var(--hair)}
+td{padding:10px 14px;border-bottom:1px solid var(--hair);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--hair)}
 .num{text-align:right;white-space:nowrap}
-.sym{font-weight:600}
-.kind{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}
-.why{color:var(--dim);max-width:44ch}
-.dim{color:var(--dim)}
-.pos{color:var(--pos)}.neg{color:var(--neg)}
-tr.muted td{opacity:.55}
-.empty{color:var(--dim);font-style:italic;padding:8px 0}
-.cap{color:var(--dim);font-size:12px;margin:4px 0 12px}
-.warn-line{color:var(--warn);margin:6px 0;font-size:12.5px}
-.chart{width:100%;height:220px;display:block}
-.chart .eq{fill:none;stroke:var(--accent);stroke-width:2}
-.chart .bm{fill:none;stroke:var(--bm);stroke-width:1.5;stroke-dasharray:4 3}
+.sym{font-weight:650;letter-spacing:-.01em}
+.kind{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+  font-weight:600;padding:2px 7px;border-radius:4px;background:var(--hair);
+  color:var(--dim);white-space:nowrap}
+.why{color:var(--dim);max-width:46ch;line-height:1.45}
+.dim{color:var(--faint)}
+.pos{color:var(--pos);font-weight:600}.neg{color:var(--neg);font-weight:600}
+tr.muted td{opacity:.5}
+.empty{color:var(--faint);font-style:italic;padding:18px;background:var(--panel);
+  border:1px dashed var(--line);border-radius:10px}
+.cap{color:var(--faint);font-size:11.5px;margin:8px 2px 0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.warn-line{color:var(--warn);background:var(--warn-bg);border-radius:8px;
+  padding:10px 14px;margin:8px 0;font-size:12.5px}
+
+/* chart ---------------------------------------------------------------- */
+.chartwrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:8px 4px 4px;box-shadow:var(--shadow)}
+.chart{width:100%;height:260px;display:block}
+.chart .eq{fill:none;stroke:var(--accent);stroke-width:2.25;
+  stroke-linejoin:round;stroke-linecap:round}
+.chart .eqfill{fill:var(--accent);opacity:.09;stroke:none}
+.chart .bm{fill:none;stroke:var(--bm);stroke-width:1.5;stroke-dasharray:5 4}
 .chart .axis{stroke:var(--line)}
-.chart .legend{font-size:11px;fill:var(--dim)}
+.chart .grid{stroke:var(--hair);stroke-width:1}
+.chart .legend{font-size:11.5px;fill:var(--dim);font-weight:600}
 .chart .k-eq{fill:var(--accent)}.chart .k-bm{fill:var(--bm)}
-footer{margin-top:36px;padding-top:12px;border-top:1px solid var(--line);
-color:var(--dim);font-size:11.5px}
+.chart .dot{fill:var(--accent)}
+
+footer{margin-top:48px;padding-top:16px;border-top:2px solid var(--fg);
+  color:var(--faint);font-size:11.5px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+@media print{body{background:#fff}.scroll,.chartwrap,.tiles{box-shadow:none}}
 """
 
 
@@ -458,10 +561,16 @@ def render(
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Trading Bot — {esc(today)}</title>
 <style>{CSS}</style></head><body>
+<div class="wrap">
 
-<h1>Trading Bot</h1>
-<p class="sub">Policy <code>{esc(policy.version)}</code> · as of {esc(today)}
- · generated {esc(generated)}</p>
+<div class="top">
+  <div>
+    <h1>Trading Bot</h1>
+    <p class="headline">{_headline(repo, today)}</p>
+  </div>
+  <p class="sub">policy {esc(policy.version)} · as of {esc(today)}<br>
+  generated {esc(generated)} · paper account</p>
+</div>
 
 {_status_bar(repo, policy, today)}
 
@@ -487,6 +596,7 @@ rule that fired.</p>
 
 <footer>Read-only view of the state database. Nothing on this page can place,
 modify or cancel an order.</footer>
+</div>
 </body></html>"""
 
 

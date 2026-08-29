@@ -221,3 +221,63 @@ def test_the_heat_limit_is_not_rounded_away(tmp_path) -> None:
 
     assert "9.6%" in page
     assert "/ 10%" not in page
+
+
+# --- the presentation layer ----------------------------------------------- #
+
+
+def test_the_balance_is_the_headline(repo: Repo, cache: BarCache) -> None:
+    """It is the number anyone opens the page for, and it used to be one tile
+    among six at the same size as `heat`."""
+    populate(repo)
+    html = dashboard.render(repo, cache, as_of=DAY)
+
+    assert 'class="headline"' in html
+    i = html.index('class="headline"')
+    assert "$" in html[i:i + 200], "the headline should carry a money figure"
+
+
+def test_the_headline_shows_the_change_since_inception(repo: Repo) -> None:
+    repo.record_equity(DAY - timedelta(days=10), cash=0, equity=100_000)
+    repo.record_equity(DAY, cash=0, equity=110_000)
+
+    html = dashboard.render(repo, None, as_of=DAY)
+    assert "+10.00%" in html
+
+
+def test_an_empty_database_still_renders_a_headline(repo: Repo) -> None:
+    """The page must survive a host that has never run a job."""
+    html = dashboard.render(repo, None, as_of=DAY)
+    assert 'class="headline"' in html
+    assert "Trading Bot" in html
+
+
+def test_the_page_stays_self_contained_after_restyling(
+    repo: Repo, cache: BarCache, tmp_path
+) -> None:
+    """The design has no font link and no external asset on purpose: the page
+    has to open over file:// or scp with no network."""
+    populate(repo)
+    out = dashboard.write(repo, tmp_path / "d.html", cache, as_of=DAY)
+    text = out.read_text(encoding="utf-8")
+
+    for marker in ("http://", "https://", "<script", "src=", "@import", "fonts."):
+        assert marker not in text, f"external dependency: {marker}"
+
+
+def test_both_themes_define_every_colour(repo: Repo) -> None:
+    """A token defined only inside the dark block renders one theme's text on
+    the other theme's ground."""
+    html = dashboard.render(repo, None, as_of=DAY)
+    light = html[html.index(":root{"):html.index("@media (prefers-color-scheme:dark)")]
+    dark = html[html.index("@media (prefers-color-scheme:dark)"):]
+    dark = dark[:dark.index("}}")]
+
+    def names(block: str) -> set[str]:
+        return {
+            line.split(":")[0].strip()
+            for line in block.replace("{", ";").replace("}", ";").split(";")
+            if line.strip().startswith("--")
+        }
+
+    assert names(light) == names(dark), "the two palettes must define the same tokens"
