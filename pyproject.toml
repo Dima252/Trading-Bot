@@ -3,10 +3,16 @@ name = "trading-bot"
 version = "0.1.0"
 description = "Autonomous swing-trading agent for US equities"
 requires-python = ">=3.11"
-dependencies = []
+# Lower bounds only. Pinning exactly would freeze security patches out; the
+# floors are the versions the APIs used here are stable from.
+dependencies = [
+    "alpaca-py>=0.33",
+    "requests>=2.31",
+]
 
 [project.optional-dependencies]
 config = ["pyyaml>=6.0"]
+llm = ["anthropic>=0.40"]
 dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff>=0.6"]
 
 [tool.pytest.ini_options]

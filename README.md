@@ -8,6 +8,11 @@ Execution: **scheduled, stateless jobs** — no daemon, no `while True`.
 
 > **Current state and next steps: [PLAN.md](PLAN.md).** This file is the
 > architecture; that one is the working log and roadmap.
+>
+> **Before running it: [SECURITY.md](SECURITY.md).** Paper trading is the
+> default and real trading needs an explicit `--live`. The measured expectation
+> is ~5.5% a year after adjusting for survivorship bias — below an index fund.
+> This is a research project, not investment advice.
 
 ---
 

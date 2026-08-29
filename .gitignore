@@ -8,6 +8,12 @@ htmlcov/
 *.sqlite3
 *.bak
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+credentials*.json
 .venv/
 venv/
 
