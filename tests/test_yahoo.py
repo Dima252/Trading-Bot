@@ -204,3 +204,88 @@ def test_a_result_with_no_usable_bars_returns_none() -> None:
         )
         is None
     )
+
+
+# --- zero-volume bars: stale quotes, and the series that legitimately has none #
+
+
+def _payload(rows):
+    """Minimal Yahoo chart response: (timestamp, o, h, l, c, volume) tuples."""
+    return {
+        "chart": {
+            "result": [{
+                "timestamp": [r[0] for r in rows],
+                "indicators": {
+                    "quote": [{
+                        "open": [r[1] for r in rows],
+                        "high": [r[2] for r in rows],
+                        "low": [r[3] for r in rows],
+                        "close": [r[4] for r in rows],
+                        "volume": [r[5] for r in rows],
+                    }],
+                },
+            }],
+        }
+    }
+
+
+def _stamps(n):
+    from datetime import datetime, timedelta
+
+    base = datetime(2020, 1, 6, tzinfo=UTC)
+    return [int((base + timedelta(days=i)).timestamp()) for i in range(n)]
+
+
+def test_a_session_where_nothing_traded_is_not_a_session() -> None:
+    """A zero-volume daily bar is a carried-forward quote. Left in, it flattens
+    ATR, understates average volume, and manufactures a huge return on the day
+    real trading resumes -- NVR showed +2633% purely because two zero-volume
+    bars at $0.38 preceded its real $10.25 open."""
+    from trading_bot.data.yahoo import _parse
+
+    t = _stamps(4)
+    series = _parse("AAA", _payload([
+        (t[0], 10.0, 10.0, 10.0, 10.0, 0),
+        (t[1], 10.0, 10.0, 10.0, 10.0, 0),
+        (t[2], 20.0, 21.0, 19.5, 20.5, 500_000),
+        (t[3], 20.5, 21.0, 20.0, 20.8, 400_000),
+    ]))
+
+    assert len(series) == 2, "the stale placeholder bars should be gone"
+    assert all(b.volume > 0 for b in series.bars)
+
+
+def test_a_rate_series_keeps_its_zero_volume_bars() -> None:
+    """`^IRX` is 99.5% zero-volume because it is a yield, not a traded
+    instrument -- and it is the cash return the whole backtest earns. Filtering
+    it would silently delete the series."""
+    from trading_bot.data.yahoo import _parse
+
+    t = _stamps(3)
+    series = _parse("^IRX", _payload([
+        (t[0], 4.5, 4.5, 4.5, 4.5, 0),
+        (t[1], 4.6, 4.6, 4.6, 4.6, 0),
+        (t[2], 4.4, 4.4, 4.4, 4.4, 0),
+    ]))
+
+    assert len(series) == 3, "a rate series must survive intact"
+
+
+def test_the_exemption_does_not_depend_on_inferring_it_from_volume() -> None:
+    """The `^` prefix decides, not the data. Inferring it looks more robust and
+    is worse: `^IRX` carries 45 spurious non-zero volume readings out of 8,515,
+    so "does this series ever show volume?" answers yes -- and deletes 8,470
+    bars of the cash rate. That mistake has already been made once."""
+    from trading_bot.data.yahoo import _parse
+
+    t = _stamps(4)
+    mostly_zero_but_not_quite = [
+        (t[0], 4.5, 4.5, 4.5, 4.5, 0),
+        (t[1], 4.6, 4.6, 4.6, 4.6, 0),
+        (t[2], 4.4, 4.4, 4.4, 4.4, 12),   # a glitch, not a real session
+        (t[3], 4.3, 4.3, 4.3, 4.3, 0),
+    ]
+
+    assert len(_parse("^IRX", _payload(mostly_zero_but_not_quite))) == 4
+    # the identical data under a tradeable ticker keeps only the traded bar
+    assert len(_parse("AAA", _payload(mostly_zero_but_not_quite))) == 1

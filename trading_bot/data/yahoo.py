@@ -153,6 +153,26 @@ def _parse(symbol: str, payload: dict) -> BarSeries | None:
         )
 
     bars.sort(key=lambda b: b.day)
+
+    # Drop sessions where nothing traded. A zero-volume daily bar is a carried
+    # forward quote, not a session: the price is stale, the range is usually
+    # zero, and nothing could have been bought or sold at it. Left in, they
+    # flatten ATR, understate average volume, and manufacture enormous returns
+    # on the day real trading resumes -- NVR shows +2633% on 1993-10-01 purely
+    # because two zero-volume bars at $0.38 preceded its real $10.25 open.
+    #
+    # Rate and index series are exempt: zero volume is their normal state, and
+    # filtering them would delete the series. `^IRX` is 99.5% zero-volume and
+    # it is the cash yield the whole backtest earns on idle balances.
+    #
+    # The test is the `^` prefix, matching `universe.is_tradeable`, and NOT a
+    # rule inferred from the volume itself. Inferring it looks more robust and
+    # is worse: `^IRX` carries 45 spurious non-zero volume readings out of
+    # 8,515, so "does this series ever show volume?" answers yes and deletes
+    # 8,470 bars of it. That mistake was made here before this comment existed.
+    if not symbol.startswith("^"):
+        bars = [b for b in bars if b.volume > 0]
+
     return BarSeries(symbol, bars) if bars else None
 
 
