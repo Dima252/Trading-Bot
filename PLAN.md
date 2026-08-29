@@ -565,6 +565,36 @@ before real money, not before paper.
 
 ---
 
+## 5e. Repo audit (session 4)
+
+Removed as unused, verified by reference scan:
+
+| Removed | Why |
+|---|---|
+| `notify.payload_for_test` | 0 refs; documented a `status --test-alerts` flag that never existed |
+| `universe.sector_of` | 0 refs; `SECTORS` is read directly |
+| `BarSeries.through()` | 0 refs |
+| `Bar.range` | 0 refs |
+| `sizing.heat_contribution` | exported and tested but used by nothing — a test for dead code is still dead |
+| `ActionKind.HOLD` | never emitted; holding is the *absence* of an action, and an enum member implied otherwise |
+| `scripts/seed_demo_data.py` | superseded — Yahoo `fetch` needs no credentials, so synthetic bars have no remaining purpose |
+
+Also deduplicated: the "index and rate series are never positions" rule was
+written out in both the backtest engine and the walk-forward. Both now call
+`universe.is_tradeable`.
+
+Kept deliberately:
+
+- **`ActionKind.TRIM` / `ADD`** — not emitted yet, but the constraint layer
+  validates them and they are the documented path for position management.
+- **The `defensive` variant**, despite being an invalid test (five changes at
+  once). Deleting it would make `records/walkforward_defensive.txt`
+  unreproducible; the comment marks it as a record of the mistake.
+- **`scripts/demo.py`** — runs the decision core on a hand-built book with no
+  data, credentials or network. The fastest way to see the brain work.
+
+---
+
 ## 5f. THE GO/NO-GO -- pre-registered 2026-08-29, before the data existed
 
 Written while the deep-history fetch was still running, so that no version of
@@ -645,33 +675,56 @@ follow-up work, not applied mid-test.
 
 ---
 
-## 5e. Repo audit (session 4)
+## 5g. SLEEVE B -- pre-registered 2026-08-29, before implementing anything
 
-Removed as unused, verified by reference scan:
+The go/no-go passed 3/3, which licenses building the second sleeve. Reading the
+existing code first turned up something better than a new build: **most of
+sleeve B already exists and is being actively suppressed.**
 
-| Removed | Why |
-|---|---|
-| `notify.payload_for_test` | 0 refs; documented a `status --test-alerts` flag that never existed |
-| `universe.sector_of` | 0 refs; `SECTORS` is read directly |
-| `BarSeries.through()` | 0 refs |
-| `Bar.range` | 0 refs |
-| `sizing.heat_contribution` | exported and tested but used by nothing — a test for dead code is still dead |
-| `ActionKind.HOLD` | never emitted; holding is the *absence* of an action, and an enum member implied otherwise |
-| `scripts/seed_demo_data.py` | superseded — Yahoo `fetch` needs no credentials, so synthetic bars have no remaining purpose |
+### Two structural mismatches in the shipped system
 
-Also deduplicated: the "index and rate series are never positions" rule was
-written out in both the backtest engine and the walk-forward. Both now call
-`universe.is_tradeable`.
+**1. A snap-back setup managed with trend-following exits.**
+`signals/setups/mean_reversion.py` targets the 20-day mean rather than an R
+multiple, precisely because "holding for 3R turns a good win rate into a bad
+one" -- its own docstring. But `time_stop_days` and `max_hold_days` are single
+global policy fields applied in `decide.py` to every position regardless of
+setup. The shipped config sets them to 40 and 60. A trade whose thesis is a
+snap-back over days is being held for up to three months.
 
-Kept deliberately:
+**2. The setup is gated out of the only regime it suits.**
+`regime_fit` rates `mean_reversion` at **0.90 in chop and 0.40 in trend** -- the
+system's own statement about where it works. `tradeable_regimes: [trend]` then
+permits it to fire only in trend, where it is rated worst. The trend gate was a
+genuine improvement and it structurally suppresses the one setup built for the
+other regime.
 
-- **`ActionKind.TRIM` / `ADD`** — not emitted yet, but the constraint layer
-  validates them and they are the documented path for position management.
-- **The `defensive` variant**, despite being an invalid test (five changes at
-  once). Deleting it would make `records/walkforward_defensive.txt`
-  unreproducible; the comment marks it as a record of the mistake.
-- **`scripts/demo.py`** — runs the decision core on a hand-built book with no
-  data, credentials or network. The fastest way to see the brain work.
+### The hypotheses, stated before any code changes
+
+**H1.** Matching the exit horizon to the setup's thesis (~5-10 days for
+mean reversion, unchanged for trend setups) improves its expectancy.
+
+**H2.** Allowing mean reversion to trade in chop -- with H1's horizon -- adds a
+return stream materially uncorrelated with sleeve A, because it buys weakness in
+the regime where sleeve A is sitting out.
+
+### Pass criteria, all three required
+
+1. Sleeve B expectancy positive in **at least 3 of 4** development folds
+2. Correlation of B's monthly returns to A's below **0.5** -- the diversification
+   is the entire point, and a second correlated sleeve is not a sleeve
+3. The combined book's Sharpe exceeds **sleeve A alone** on the same window
+
+### What this requires building
+
+`time_stop_days` and `max_hold_days` become per-setup, the way `regime_fit`
+already is. That is the whole implementation -- the detector, the entry, the
+scoring and the constitution all exist.
+
+### Where it gets tested
+
+Development window only (1993-2013). `provenance.py` refuses anything else.
+2014-2019 stays unspent until B is finished, and is then spent once on the
+combined A+B system rather than on B in isolation.
 
 ---
 

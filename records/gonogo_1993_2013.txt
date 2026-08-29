@@ -1,0 +1,50 @@
+window: 1993-01-29 -> 2013-12-31  (development window -- unseen, free to explore)
+
+4 folds x 2 variants over 445 symbols
+
+  computing indicators for 446 symbols...
+  scanning 4992 sessions for baseline...
+  scanning 4992 sessions for shipped...
+  F1 1994-03-07 -> 1999-02-12  baseline...
+  F1 1994-03-07 -> 1999-02-12  shipped...
+  F2 1999-02-16 -> 2004-02-02  baseline...
+  F2 1999-02-16 -> 2004-02-02  shipped...
+  F3 2004-02-03 -> 2009-01-15  baseline...
+  F3 2004-02-03 -> 2009-01-15  shipped...
+  F4 2009-01-16 -> 2013-12-31  baseline...
+  F4 2009-01-16 -> 2013-12-31  shipped...
+
+==============================================================================
+WALK-FORWARD
+==============================================================================
+  4 folds, 2 variants
+    F1  1994-03-07 -> 1999-02-12
+    F2  1999-02-16 -> 2004-02-02
+    F3  2004-02-03 -> 2009-01-15
+    F4  2009-01-16 -> 2013-12-31
+
+  baseline
+    fold    trades   exp R   win%   return   vs SPY    vol  Sharpe   maxDD  ret/DD    bm   bar
+    F1        1065  -0.003  37.9%   14.60% -175.63%  12.8%   -0.17  20.56%    0.71 10.00   fail
+    F2        1101  -0.056  36.0%  -23.37%  -22.43%  15.3%   -0.55  48.29%   -0.48 -0.02   fail
+    F3         998   0.011  39.9%   11.29%  +29.57%  14.6%   -0.05  32.76%    0.34 -0.36   PASS
+    F4         968   0.077  42.4%   35.13% -106.04%  14.6%    0.42  17.20%    2.04  6.40   fail
+           clears the PLAN section 5 bar in 1/4 folds
+
+  shipped
+    fold    trades   exp R   win%   return   vs SPY    vol  Sharpe   maxDD  ret/DD    bm   bar
+    F1         270  -0.068  34.4%    5.10% -185.13%  12.4%   -0.32  28.34%    0.18 10.00   fail
+    F2         146   0.109  42.5%   31.58%  +32.52%   9.2%    0.27  12.52%    2.52 -0.02   PASS
+    F3         218   0.183  42.7%   70.09%  +88.37%  11.4%    0.73  11.46%    6.12 -0.36   PASS
+    F4         213   0.248  46.9%   54.80%  -86.37%  11.3%    0.81   9.85%    5.56  6.40   fail
+           clears the PLAN section 5 bar in 2/4 folds
+
+  verdicts
+    variant                 folds won  mean exp R   vs base   conclusion
+    baseline                        -       0.007    +0.000   reference
+    shipped                       3/4       0.118    +0.111   held in most folds -- promising
+
+  Consistency is the test, not the aggregate. A variant that wins
+  on the total but only in one fold is a fitted result wearing a
+  disguise. Nothing here has touched the holdout.
+==============================================================================
