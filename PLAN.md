@@ -612,6 +612,37 @@ to baseline**, not about return. Both variants face the identical biased
 universe, so the comparison between them survives even though neither absolute
 number does.
 
+### A second limitation, found before the run and recorded here unchanged
+
+The liquidity screen's floors -- `min_price` $10 and `min_dollar_volume` $20M
+over 20 sessions -- are calibrated to today's market. Applied backwards through
+split-adjusted prices and 1990s trading volumes they are anachronistic, and they
+shrink the tradeable universe severely in the early folds:
+
+| Date | Names with a bar | Passing the screen |
+|---|---|---|
+| 1995-06 | 292 | **17** |
+| 1999-06 | 338 | 116 |
+| 2003-06 | 374 | 169 |
+| 2007-06 | 407 | 319 |
+| 2011-06 | 436 | 331 |
+| 2015-06 | 462 | 414 |
+
+**F1 therefore tests a universe of tens of names, not hundreds** -- and a narrow
+universe was already identified as the binding constraint when widening from 85
+to 503 names produced the largest single improvement in the research.
+
+The criteria above are **left exactly as written**. Changing the screen now
+would mean testing a system nobody validated, which is the failure this whole
+protocol exists to prevent. Instead: read F1, and to a lesser extent F2, as
+universe-constrained, and treat a low trade count there as low power rather than
+as evidence against the edge. `Stats.is_meaningful` already marks any fold under
+30 trades.
+
+An era-relative screen -- "the most liquid N names as of this date" rather than a
+fixed dollar threshold -- is the correct long-term fix and is recorded in §4 as
+follow-up work, not applied mid-test.
+
 ---
 
 ## 5e. Repo audit (session 4)
