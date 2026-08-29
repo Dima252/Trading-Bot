@@ -645,6 +645,94 @@ a prerequisite for the whole three-sleeve design -- not a detail.
 
 ---
 
+## 5i. SLEEVE C: MULTI-ASSET TREND -- pre-registered 2026-08-29
+
+A different strategy, not a variant of sleeve A. Chosen from published evidence
+rather than from inspecting our own code, after sleeve B showed there is no
+second return stream hiding in this repo.
+
+### What the research says
+
+**Moskowitz, Ooi & Pedersen (2012), "Time Series Momentum".** All 58 liquid
+futures markets showed positive predictability from past returns; 52 were
+significant at 5%. Persistence runs 1-12 months and partially reverses beyond.
+The diversified portfolio "performs best during extreme markets" with little
+exposure to standard factors.
+
+**The decay is real and must be priced in.** The 2010-2019 decade was a
+sustained drawdown for trend followers -- low volatility, suppressed yields,
+range-bound commodities. A 2025 study measuring 2015-2025 finds Sharpes far
+below the original paper's 1.2:
+
+| Horizon | Sharpe | Return/MaxDD |
+|---|---|---|
+| 20-day | 0.20 | 0.24 |
+| 60-day | 0.21 | 0.28 |
+| 125-day | **0.21** | **0.19** |
+| 250-day | 0.42 | 0.30 |
+| **500-day** | **0.47** | **0.49** |
+
+The 125-day horizon is redundant -- 0.84 correlated with 250-day and worst on
+both measures. **Short and long, skip the middle.**
+
+**Dual momentum's famous 17% was in-sample.** Antonacci's 1974-2013 backtest
+showed ~17% against ~10% buy-and-hold; from 2014 the strategy underperformed
+through the US bull market. Same shape as sleeve A, and a caution against
+reading any published backtest as an expectation.
+
+### Why this complements sleeve A, where sleeve B did not
+
+Sleeve A is selective and capped: in F4's 2009-13 bull it returned 54.8% while
+SPY did 141%. It sits out chop and limits position size, so it structurally
+cannot participate in sustained advances.
+
+Time-series momentum is not merely crisis alpha. It is **long in uptrends and
+flat or short in downtrends**, so it participates in exactly the regime sleeve A
+concedes, and steps aside in the one sleeve A already handles. The complement is
+in the direction the book is actually short of.
+
+### The design
+
+Every axis differs from sleeve A -- this is the point.
+
+| | Sleeve A | Sleeve C |
+|---|---|---|
+| Signal | cross-sectional rank against peers | time-series: each asset against its **own** history |
+| Universe | ~500 US stocks | ~25 ETFs: equity, sector, bond, commodity, REIT, FX |
+| Sizing | fixed fractional off stop distance | **volatility targeting** |
+| Direction | long only | long / flat, cash to T-bills |
+| Horizon | 40-day holds, daily scan | 20d + 250d + 500d signals, weekly rebalance |
+
+Signal per asset: the average of `sign(return)` over 20, 250 and 500 sessions.
+The 125-day band is deliberately absent. Position = signal x (target_vol /
+realised_vol), which is the mechanism behind the published Sharpes.
+
+### Pass criteria, all four required
+
+1. Positive return over the development window, net of costs
+2. **Correlation of monthly returns to sleeve A below 0.3** -- the entire reason
+   for building it. A correlated sleeve is not a sleeve
+3. Sharpe above **0.40**, the recent-decade figure for the 500-day horizon, not
+   the 1.2 of the original paper
+4. The A+C combination has a **higher Sharpe and a shallower max drawdown** than
+   sleeve A alone
+
+### Limitations, recorded before the run
+
+**Coverage.** Bond ETFs begin 2002-07 and commodities 2004-2006, so the full
+multi-asset universe exists only from roughly 2004. With a 500-day warm-up the
+sleeve trades from about 2006 -- so the development window yields ~7 years
+including the GFC, not 20. Fewer, and less independent, than sleeve A's folds.
+
+**Long-only is a compromise.** The published results are long-short. Shorting
+ETFs adds borrow cost and complexity, so this holds cash in short signals and
+gives up part of the crisis alpha.
+
+**No survivorship bias here**, unusually -- these are index ETFs that still
+exist, not a filtered list of surviving companies.
+
+---
+
 ## 5e. Repo audit (session 4)
 
 Removed as unused, verified by reference scan:

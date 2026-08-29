@@ -109,6 +109,25 @@ def all_symbols(include_benchmark: bool = True) -> list[str]:
     return extras + DEFAULT_UNIVERSE
 
 
+# Sleeve C's universe: liquid ETFs spanning equity, sector, bond, commodity,
+# real estate and currency. Deliberately not stocks -- the sleeve's whole value
+# is being uncorrelated with sleeve A's 500 US names, and the diversification
+# has to come from the assets, not from the signal.
+#
+# Coverage is uneven going back: sector SPDRs start 1998-12, bond ETFs 2002-07,
+# gold 2004-11, broad commodities and oil 2006, high yield and the dollar 2007.
+TREND_UNIVERSE: list[str] = [
+    # broad equity
+    "SPY", "QQQ", "IWM", "EFA", "EEM", "EWJ",
+    # US sectors
+    "XLE", "XLF", "XLK", "XLV", "XLI", "XLP", "XLU", "XLY", "XLB",
+    # fixed income
+    "TLT", "IEF", "SHY", "LQD", "HYG",
+    # commodities, real assets, currency
+    "GLD", "SLV", "DBC", "USO", "VNQ", "UUP",
+]
+
+
 def is_tradeable(symbol: str) -> bool:
     """Index and rate series are inputs, never positions.
 
