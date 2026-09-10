@@ -1,0 +1,110 @@
+name: intraday
+
+# premarket (09:00 ET), open (10:00 ET) and close (15:30 ET).
+#
+# These have to run DURING the session, so unlike the evening job there is no
+# single UTC time that is correct in both DST states:
+#
+#            EDT (Mar-Nov)   EST (Nov-Mar)
+#   09:00 ET   13:00 UTC       14:00 UTC
+#   10:00 ET   14:00 UTC       15:00 UTC
+#   15:30 ET   19:30 UTC       20:30 UTC
+#
+# So every candidate time is scheduled and the workflow asks what time it
+# actually is in New York, then runs the job that belongs to that hour. Note
+# 14:00 UTC is premarket under EST and open under EDT -- the guard is what tells
+# them apart, which is why it reads the exchange clock rather than counting
+# hours off UTC.
+#
+# The clock comes from trading_bot.market_hours, the same module the jobs
+# themselves use. A second implementation here would be a second thing to get
+# wrong, and this project has already lost a session to a local clock standing
+# in for the exchange's.
+
+on:
+  schedule:
+    - cron: "0 13,14,15 * * 1-5"     # premarket and open, both DST states
+    - cron: "30 19,20 * * 1-5"       # close, both DST states
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Run one job by hand"
+        required: true
+        type: choice
+        options: [premarket, open, close]
+
+concurrency:
+  group: bot-state
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install --quiet -e ".[config]"
+
+      - name: Which job belongs to this hour in New York?
+        id: which
+        run: |
+          if [ -n "${{ inputs.job }}" ]; then
+            echo "job=${{ inputs.job }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          JOB=$(python - <<'PY'
+          from trading_bot.market_hours import now_exchange
+
+          now = now_exchange()
+          # (hour, minute) at the exchange -> the job that belongs to it.
+          # GitHub's scheduler drifts 5-30 minutes under load, so each window is
+          # generous; the jobs are idempotent and re-running one is harmless.
+          if now.hour == 9:
+              print("premarket")
+          elif now.hour == 10:
+              print("open")
+          elif now.hour == 15 and now.minute >= 20:
+              print("close")
+          else:
+              print("")
+          PY
+          )
+          echo "job=${JOB}" >> "$GITHUB_OUTPUT"
+          [ -z "${JOB}" ] && echo "no job for this hour -- the other DST schedule owns it"
+          exit 0
+
+      - name: Restore bar cache
+        if: steps.which.outputs.job != ''
+        uses: actions/cache@v4
+        with:
+          path: data/bars.db
+          key: bars-${{ github.run_id }}
+          restore-keys: bars-
+
+      - name: Run
+        if: steps.which.outputs.job != ''
+        env:
+          APCA_API_KEY_ID: ${{ secrets.APCA_API_KEY_ID }}
+          APCA_API_SECRET_KEY: ${{ secrets.APCA_API_SECRET_KEY }}
+        run: python -m trading_bot ${{ steps.which.outputs.job }}
+
+      - name: Commit state
+        if: steps.which.outputs.job != ''
+        run: |
+          git config user.name  "trading-bot"
+          git config user.email "trading-bot@users.noreply.github.com"
+          git add -f data/state.db
+          git diff --cached --quiet && echo "nothing changed" && exit 0
+          git commit -m "${{ steps.which.outputs.job }}: $(date -u +%Y-%m-%dT%H:%MZ)"
+          git pull --rebase --autostash
+          git push

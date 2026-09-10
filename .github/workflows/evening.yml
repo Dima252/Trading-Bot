@@ -1,0 +1,73 @@
+name: evening
+
+# The main think: refresh bars, scan, write tomorrow's watchlist, publish.
+#
+# GitHub's scheduler is UTC only, with no timezone support, so the New York
+# schedule has to be expressed in UTC and survive DST. 23:00 UTC is the one
+# time that works unchanged in both states -- 19:00 EDT and 18:00 EST, and the
+# bell is at 16:00 either way. Every other job needs two entries and a guard
+# (see intraday.yml); this one does not.
+#
+# GitHub also disables scheduled workflows after 60 days without repository
+# activity. This one commits the dashboard and state on every run, so it keeps
+# itself alive.
+
+on:
+  schedule:
+    - cron: "0 23 * * 1-5"
+  workflow_dispatch:          # so it can be run by hand from the Actions tab
+
+# Both workflows commit to the repository. Serialise them, or two runs race on
+# the same state database and one silently loses.
+concurrency:
+  group: bot-state
+  cancel-in-progress: false
+
+permissions:
+  contents: write             # to commit state and the published dashboard
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install --quiet -e ".[config]"
+
+      # ~400 MB of bars. Restored between runs so `fetch` only pulls the tail;
+      # a cold run refetches everything and takes about ten minutes.
+      - name: Restore bar cache
+        uses: actions/cache@v4
+        with:
+          path: data/bars.db
+          key: bars-${{ github.run_id }}
+          restore-keys: bars-
+
+      - name: Run
+        env:
+          APCA_API_KEY_ID: ${{ secrets.APCA_API_KEY_ID }}
+          APCA_API_SECRET_KEY: ${{ secrets.APCA_API_SECRET_KEY }}
+        run: |
+          python -m trading_bot fetch
+          python -m trading_bot evening
+          python -m trading_bot dashboard --out docs/index.html
+
+      # The broker owns positions and cash; this database owns intent -- the
+      # thesis behind each position, the decision log, the shadow book. Losing
+      # it would leave the reconciler adopting positions with synthetic stops
+      # and no record of why anything was bought.
+      - name: Commit state and dashboard
+        run: |
+          git config user.name  "trading-bot"
+          git config user.email "trading-bot@users.noreply.github.com"
+          git add -f data/state.db docs/index.html config/earnings.json
+          git diff --cached --quiet && echo "nothing changed" && exit 0
+          git commit -m "evening: $(date -u +%Y-%m-%d)"
+          git push
