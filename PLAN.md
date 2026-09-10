@@ -1,6 +1,6 @@
 # Where we stopped, and what happens next
 
-Last updated 2026-08-28. Architecture reference is [README.md](README.md);
+Last updated 2026-09-10. Architecture reference is [README.md](README.md);
 deployment is [deploy/README.md](deploy/README.md). This file is the working log
 and forward plan.
 
@@ -10,18 +10,19 @@ and forward plan.
 
 | | |
 |---|---|
-| Implementation | ~8,900 lines, 58 modules |
-| Tests | **332 passing**, ~22s, 84% coverage, `ruff` clean |
-| Market data | 887,235 daily bars, 505 symbols, 2019-07 → 2026-08 |
+| Implementation | ~10,100 lines, 64 modules |
+| Tests | **431 passing**, ~24s, 83% coverage, `ruff` clean |
+| Market data | 3,659,099 daily bars, 530 symbols, 1992-01 → 2026-08 |
 | Shipping config | `config/policy.yaml` **v2-holdout** — frozen, out-of-sample tested |
 | Broker | Alpaca paper connected and verified ($100k account) |
 | Research | **Closed.** The holdout is spent; historical data is exhausted |
-| Next | Two weeks of `--dry-run`, then six months unchanged (§4) |
+| Deployment | **Live on GitHub Actions**, paper account, since 2026-09-10 |
+| Next | Let it run. Six months, unchanged (§5d) |
 
 ### What runs today
 
 ```bash
-python -m pytest -q                    # 332 tests
+python -m pytest -q                    # 431 tests
 python -m ruff check .                 # lint, incl. the datetime rules
 python scripts/demo.py                 # decision core on a hand-built book
 python -m trading_bot fetch            # real bars, no API key needed (Yahoo)
@@ -33,8 +34,10 @@ python -m trading_bot serve            # live view + kill switch
 python -m trading_bot daily            # THE DRY RUN: fetch, scan, render
 ```
 
-The four jobs have run against the real paper account. They have **never placed
-an order** — every run so far has been `--dry-run` or paper-broker rehearsal.
+The four jobs are scheduled on GitHub Actions against the paper account. As of
+2026-09-10 they have **never placed an order** — every run so far has been
+`--dry-run`, a paper-broker rehearsal, or a manual trigger that correctly
+refused because the session was still open.
 
 ---
 

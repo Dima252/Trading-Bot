@@ -42,7 +42,74 @@ complained, because a provisional bar and a settled one are indistinguishable.
 If staying up past 23:00 daily is not realistic, that is the argument for moving
 to Phase 2 sooner — a host on New York time does this while you sleep.
 
-## Phase 2 — the six-month trial (a host that stays on)
+## Phase 2 — the six-month trial, on GitHub Actions (what is running)
+
+**No host to rent.** Public repositories get unlimited Actions minutes and need
+no credit card, and five short scheduled jobs a day is exactly the shape that
+suits. This is the deployment currently in use.
+
+| Workflow | Fires | Does |
+|---|---|---|
+| `.github/workflows/evening.yml` | 23:00 UTC, weekdays | fetch → scan → render → publish |
+| `.github/workflows/intraday.yml` | 13/14/15:00 and 19:30/20:30 UTC | premarket, open, close |
+
+Three things to switch on, once:
+
+1. **Settings → Secrets and variables → Actions** — add `APCA_API_KEY_ID` and
+   `APCA_API_SECRET_KEY`. Paper keys. The workflows never pass `--live`, and a
+   test asserts it.
+2. **Settings → Pages** — deploy from branch `main`, folder `/docs`.
+3. Nothing else. The schedule starts on its own.
+
+### Why the UTC schedule looks strange
+
+GitHub's scheduler is **UTC only** with no timezone support, so a New York
+schedule has to survive two DST changeovers a year — and a job firing an hour
+early still exits cleanly, which makes getting it wrong silent.
+
+`23:00 UTC` is the one time needing no guard: 19:00 EDT and 18:00 EST, against a
+16:00 bell. The evening job takes it and needs a single entry.
+
+The intraday jobs run *during* the session, so no single UTC time works:
+
+| | EDT (Mar–Nov) | EST (Nov–Mar) |
+|---|---|---|
+| 09:00 ET premarket | 13:00 UTC | 14:00 UTC |
+| 10:00 ET open | **14:00 UTC** | 15:00 UTC |
+| 15:30 ET close | 19:30 UTC | 20:30 UTC |
+
+**14:00 UTC is `open` in summer and `premarket` in winter.** Every candidate
+time is scheduled, and the workflow asks what time it is *in New York* before
+deciding which job belongs to the hour — importing `trading_bot.market_hours`
+rather than reimplementing a timezone in YAML. A second implementation is a
+second thing to get wrong, and this project has already lost a session to
+exactly that. `tests/test_workflows.py` asserts each job fires once a day in
+both states.
+
+### Two things the workflows do that are easy to miss
+
+**They commit `data/state.db` on every run.** The broker owns positions and
+cash; that database owns intent — the thesis behind each position, the decision
+log, the shadow book. Losing it between runs would leave the reconciler adopting
+positions with synthetic stops and no record of why anything was bought. It also
+keeps the schedule alive, since GitHub disables cron after 60 days without
+repository activity.
+
+**Tracebacks are scrubbed first.** A failing job writes `format_exc()` into
+`runs.detail`, and that database is public. GitHub masks secrets in workflow
+*logs* and does nothing for a file the workflow commits. See `SECURITY.md`.
+
+### A manual run before the bell will fail, correctly
+
+`evening` refuses to scan while the session is open, so triggering it by hand at
+midday exits 1 and publishes nothing. That is the guard working: a daily bar
+exists from the opening bell with a "close" that is only the last trade. Trigger
+it after 16:00 ET, or let the schedule do it.
+
+## Phase 2, alternative — a VPS you rent
+
+Still supported, and needed if you ever want sub-minute scheduling or a
+persistent process.
 
 ```bash
 BOT_DIR=/opt/trading-bot bash deploy/setup.sh   # fills in .env, then re-run
@@ -52,6 +119,10 @@ sed 's#/opt/trading-bot#/opt/trading-bot#' deploy/crontab.template | crontab -
 `setup.sh` is idempotent and verifies each step rather than assuming it worked.
 It refuses to continue if the test suite fails, because every number this system
 produces depends on it.
+
+**Oracle's free tier is the wrong tool here.** Instances are reclaimed when CPU
+sits below 20% at the 95th percentile over seven days, which a bot running five
+brief jobs a day certainly does.
 
 ### Why not Windows Task Scheduler
 

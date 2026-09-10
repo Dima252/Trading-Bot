@@ -612,13 +612,14 @@ Each phase is independently valuable and testable.
 | **0** | Data layer, indicators, 3 setups, regime, backtest harness | The loop works end to end. No broker, no LLM. | **done** |
 | **1** | `models.py`, `policy.py`, `sizing.py`, `scoring.py`, `constraints.py`, `decide.py` | The money math. Pure Python, no I/O. | **done** |
 | **2** | DB schema, repo, reconciler, Alpaca + paper brokers | State stays consistent with Alpaca | **done** |
-| **3** | The four jobs + CLI | The plumbing. Connected to the paper account; **no order has been placed yet.** | code done |
+| **3** | The four jobs + CLI | The plumbing. Scheduled on GitHub Actions against the paper account; **no order has been placed yet.** | deployed |
 | **4** | Shadow book + attribution + diagnostics | Measurement — before adding anything else | **done** |
 | **5** | Semantic engine (Claude, structured output) | Then measure whether the veto actually helps | code done |
 | **6** | Proposal engine with guardrails | Learning loop closes | **done** |
 | **7** | ML signal generation | Only if it beats the rules baseline out of sample | **not started, and blocked** — see §16 |
 | **8** | UI layer — static dashboard, then a live server with controls | The bot becomes observable without SQL | **done** |
-| **9** | Walk-forward + holdout validation | A change is only real if it holds across periods it never saw | **done, and the holdout is spent** |
+| **9** | Walk-forward + holdout validation | A change is only real if it holds across periods it never saw | **done. Development, validation and holdout are all spent** |
+| **10** | Unattended deployment | It runs without anyone remembering to run it | **done** — free on GitHub Actions, DST-correct, publishing to Pages |
 
 Phases 1 and 2 matter more than any model. Edges in daily-bar swing systems are thin; most of the
 value here is disciplined, measurable infrastructure. Build so that in six months *"is the LLM gate
@@ -776,7 +777,7 @@ quietly not working.
 
 ## 18. Testing
 
-**332 tests, no network, no credentials, ~22 seconds.** Coverage is 84%; `ruff`
+**431 tests, no network, no credentials, ~24 seconds.** Coverage is 83%; `ruff`
 is clean with `E,F,I,UP,B,SIM,DTZ,RUF` enabled.
 
 ```bash
@@ -806,6 +807,12 @@ The ones that carry the most weight:
   live system must not trade regimes the backtest never traded.
 - **`test_cli.py::test_the_shipped_policy_still_opens_only_in_trend`** — if this
   fails, the deployed system is no longer the one the holdout validated.
+- **`test_workflows.py`** — the GitHub Actions schedule. Each job must fire
+  exactly once a day in *both* DST states; 14:00 UTC is `open` in summer and
+  `premarket` in winter, and only the exchange clock separates them.
+- **`test_redact.py`** — credentials must not reach `runs.detail`, which the
+  workflow commits to a public repository. Half the tests assert the opposite
+  direction: an ordinary traceback must survive byte for byte.
 - **`test_jobs.py::test_the_books_reconcile_across_a_full_cycle`** — the live-path
   twin of the equity test above: after every session, the broker's equity must
   equal starting equity plus recorded P&L plus unrealised. Four defects lived in
@@ -816,14 +823,14 @@ The ones that carry the most weight:
 
 ## Status
 
-**Phases 0–6, 8 and 9 are built.** ~8,840 lines of implementation across 58
-modules, ~4,833 lines of tests, **332 passing**, 84% coverage, lint clean.
+**Phases 0–6, 8 and 9 are built.** ~10,100 lines of implementation across 64
+modules, ~6,000 lines of tests, **431 passing**, 83% coverage, lint clean.
 
 ### What has actually been done
 
 | | |
 |---|---|
-| **The system runs end to end** | scan → score → decide → constitution → broker → database → reconcile → attribute, on 887,235 real daily bars across 505 symbols |
+| **The system runs end to end** | scan → score → decide → constitution → broker → database → reconcile → attribute, on 3.66 million real daily bars across 530 symbols, back to 1992 |
 | **It is connected to a real broker** | Alpaca paper, $100k account, verified. Positions, cash, orders and the market calendar all come from it |
 | **It has never placed an order** | Every run so far has been `--dry-run` or a paper-broker rehearsal |
 | **The strategy was tested, and the first version failed** | −0.009R over 1,107 trades. The ranking function measured *useless* (rho = 0.001 over 25,018 candidates) because a 60%-weighted input was anti-predictive |
@@ -867,9 +874,9 @@ never validated.
 
 | | Why | Blocked on |
 |---|---|---|
-| **An always-on host** | A laptop misses sessions, and `CRON_TZ` also fixes the DST drift a local scheduler has | ~$5/month VPS. `deploy/setup.sh` does the rest |
-| **Heartbeat + webhook alerts** | The heartbeat is the only thing that can catch the bot *not running* — dead code sends no alerts | Two URLs |
-| **Earnings calendar** | The hardest-blocking rule currently has no data source and can never fire | A provider; Alpaca does not publish one |
+| ~~An always-on host~~ | **Done.** Runs on GitHub Actions — free on public repos, no card, no host to rent. See [deploy/README](deploy/README.md) | — |
+| ~~Earnings calendar~~ | **Done 2026-08-29.** The hardest-blocking rule fires for the first time | — |
+| **Heartbeat + webhook alerts** | A heartbeat is the only thing that catches the bot *not running* — dead code sends no alerts. Actions emails on a failed run, which covers the loud case but not a schedule that silently stops firing | Two URLs |
 | **A second uncorrelated strategy** | The diagnosis in §16 was that the *structure* limits returns, not the parameters. Short signals or a non-equity sleeve change the structure; tuning does not | Nothing technical — but the holdout is spent, so it needs new out-of-sample data |
 | **ML signal generation (phase 7)** | Only worth it if it beats the rules baseline out of sample | **The historical data is exhausted.** Any model selected on it now would be fitting noise. This needs the six months of live data first |
 | **`ADD` to a position** | `decide()` never emits it; layering onto a live OCO bracket is a three-step transaction | Executor work and a rollback path |
