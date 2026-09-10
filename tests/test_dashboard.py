@@ -283,3 +283,26 @@ def test_both_themes_define_every_colour(repo: Repo) -> None:
         }
 
     assert names(light) == names(dark), "the two palettes must define the same tokens"
+
+
+def test_a_stale_page_says_so(repo: Repo) -> None:
+    """A visitor arriving from a link reads whatever is on the page as what the
+    bot is doing now. Before the first scheduled run it renders a replay, and
+    "as of <date>" in small type is not enough to correct that."""
+    old = date(2020, 1, 6)
+    repo.record_equity(old, cash=50_000, equity=104_452)
+
+    html = dashboard.render(repo, None, as_of=old)
+    assert "replay, not current activity" in html
+
+
+def test_a_current_page_carries_no_such_warning(repo: Repo) -> None:
+    """The notice must disappear once the schedule is publishing, or it becomes
+    noise that gets ignored on the day it matters."""
+    from trading_bot.market_hours import today_exchange
+
+    today = today_exchange()
+    repo.record_equity(today, cash=50_000, equity=104_452)
+
+    html = dashboard.render(repo, None, as_of=today)
+    assert "replay, not current activity" not in html

@@ -140,6 +140,23 @@ def _sparkline(
 # --------------------------------------------------------------------- #
 
 
+def _freshness(as_of: date) -> str:
+    """Say so when the page is not showing current activity.
+
+    A visitor arriving from a link reads whatever is on the page as what the bot
+    is doing now. Before the first scheduled run this page renders a historical
+    replay, and "as of 2025-06-10" in small type under the title is not enough
+    to correct that impression.
+    """
+    age = (today_exchange() - as_of).days
+    if age <= 7:
+        return ""
+    return (
+        f' <strong>Showing a {as_of} replay, not current activity</strong> '
+        f"— the scheduled run has not published since then ({age} days)."
+    )
+
+
 def _headline(repo: Repo, today: date) -> str:
     """Account value, with the change since the run began.
 
@@ -582,7 +599,7 @@ def render(
 ~500 names nightly, decides what the portfolio should look like tomorrow, and
 places bracketed orders through a broker API on a schedule — no daemon, no
 manual input. <strong>Trading a paper account. No real money is involved.</strong>
-Every figure below comes from its own state database.
+Every figure below comes from its own state database.{_freshness(today)}
 <a href="https://github.com/Dima252/Trading-Bot">Source and research log</a>.</p>
 
 {_status_bar(repo, policy, today)}

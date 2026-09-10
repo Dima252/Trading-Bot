@@ -6,6 +6,13 @@ universe, it decides what the portfolio should look like tomorrow — and execut
 Broker: **Alpaca** (paper first). Style: **swing**, holds of days to weeks.
 Execution: **scheduled, stateless jobs** — no daemon, no `while True`.
 
+### → **[Live dashboard](https://dima252.github.io/Trading-Bot/)**
+
+Account value, open positions, the watchlist, and the decision log — every
+action it took and every action the constitution vetoed, each with the rule that
+fired. Regenerated and published after every evening run by
+[a scheduled workflow](.github/workflows/evening.yml).
+
 > **Current state and next steps: [PLAN.md](PLAN.md).** This file is the
 > architecture; that one is the working log and roadmap.
 >
