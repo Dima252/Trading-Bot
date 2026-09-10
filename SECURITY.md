@@ -36,6 +36,33 @@ Keys shared in a chat window, a terminal recording, a screenshot or an issue
 should be treated as compromised regardless of where they ended up. Alpaca lets
 you regenerate paper keys freely, so there is no cost to doing it.
 
+## What the scheduled workflows publish
+
+`.github/workflows/` runs the bot on GitHub Actions and **commits `data/state.db`
+to this repository on every run.** That is deliberate -- the broker owns
+positions and cash, this database owns intent, and losing it would leave the
+reconciler adopting positions with synthetic stops and no record of why anything
+was bought. It also means the contents are public.
+
+What is in it: the watchlist, the decision log with the reason for every action
+and every veto, closed trades with their P&L, and the equity history. All of it
+for a **paper** account. Publishing it is the point of the project; know that it
+is happening.
+
+**Tracebacks are scrubbed before they are stored.** A failing job writes
+`traceback.format_exc()` into `runs.detail`, and GitHub masks registered secrets
+in workflow *logs* but does nothing for a file the workflow commits.
+`ops/redact.py` removes the exact values of `APCA_API_KEY_ID`,
+`APCA_API_SECRET_KEY` and `ANTHROPIC_API_KEY` from the environment, plus
+anything credential-shaped that this process never held. Thirteen tests cover
+it, including that ordinary diagnostics survive intact -- a scrubber that eats
+the traceback is its own kind of outage.
+
+**Neither workflow can be triggered by a fork.** They run on `schedule` and
+`workflow_dispatch` only; there is no `pull_request` or `pull_request_target`
+trigger, so a pull request from a fork cannot reach the secrets. Nor can either
+pass `--live`; a test asserts it.
+
 ## The dashboard server
 
 `python -m trading_bot serve` exposes the halt/resume control. It:

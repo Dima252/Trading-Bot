@@ -37,6 +37,7 @@ from ..core.policy import Policy
 from ..data.cache import BarCache
 from ..db.repo import Repo
 from ..ops.notify import Level, format_summary, heartbeat, notify
+from ..ops.redact import redact
 
 log = logging.getLogger("trading_bot")
 
@@ -152,12 +153,14 @@ def run_job(name: str, ctx: AgentContext, body) -> JobResult:
     except Exception as exc:
         result.status = "error"
         result.note(f"FAILED: {exc}")
-        ctx.repo.finish_run(run_id, "error", traceback.format_exc())
+        # Scrubbed: this row is committed to a public repository by the
+        # Actions workflow, and GitHub masks secrets in logs but not in files.
+        ctx.repo.finish_run(run_id, "error", redact(traceback.format_exc()))
         log.exception("%s failed", name)
         notify(
             Level.ERROR,
             f"{name} failed on {ctx.day}",
-            f"{type(exc).__name__}: {exc}",
+            redact(f"{type(exc).__name__}: {exc}"),
         )
         heartbeat(name, failed=True)
     return result
