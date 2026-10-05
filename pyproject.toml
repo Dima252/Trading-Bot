@@ -15,6 +15,16 @@ config = ["pyyaml>=6.0"]
 llm = ["anthropic>=0.40"]
 dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff>=0.6"]
 
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+# Name the package explicitly. Automatic discovery sees config/, deploy/ and
+# records/ beside trading_bot/ as candidate packages and refuses to build, which
+# is what failed every `pip install -e .` on Actions from the first run on.
+[tool.setuptools.packages.find]
+include = ["trading_bot*"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
